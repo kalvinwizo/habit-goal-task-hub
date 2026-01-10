@@ -19,7 +19,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useApp } from '@/context/AppContext';
-import { Goal, GoalTrackingType, GoalMilestone } from '@/types';
+import { Goal, GoalTrackingType, GoalMilestone, PRESET_CATEGORIES } from '@/types';
+import { Switch } from '@/components/ui/switch';
 
 interface CreateGoalDialogProps {
   editGoal?: Goal | null;
@@ -27,7 +28,7 @@ interface CreateGoalDialogProps {
 }
 
 export function CreateGoalDialog({ editGoal, onClose }: CreateGoalDialogProps) {
-  const { addGoal, updateGoal } = useApp();
+  const { addGoal, updateGoal, customCategories, habits, tasks } = useApp();
   const [open, setOpen] = useState(!!editGoal);
   const [title, setTitle] = useState(editGoal?.title || '');
   const [why, setWhy] = useState(editGoal?.why || '');
@@ -36,6 +37,10 @@ export function CreateGoalDialog({ editGoal, onClose }: CreateGoalDialogProps) {
   const [targetValue, setTargetValue] = useState(editGoal?.targetValue?.toString() || '');
   const [milestones, setMilestones] = useState<GoalMilestone[]>(editGoal?.milestones || []);
   const [newMilestone, setNewMilestone] = useState('');
+  const [category, setCategory] = useState(editGoal?.category || '');
+  const [autoTrack, setAutoTrack] = useState(editGoal?.autoTrack ?? true);
+
+  const allCategories = [...PRESET_CATEGORIES.map(c => c.name), ...customCategories.map(c => c.name)];
 
   const resetForm = () => {
     setTitle('');
@@ -45,6 +50,8 @@ export function CreateGoalDialog({ editGoal, onClose }: CreateGoalDialogProps) {
     setTargetValue('');
     setMilestones([]);
     setNewMilestone('');
+    setCategory('');
+    setAutoTrack(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -58,6 +65,8 @@ export function CreateGoalDialog({ editGoal, onClose }: CreateGoalDialogProps) {
       trackingType,
       targetValue: trackingType === 'numeric' ? parseInt(targetValue) || undefined : undefined,
       milestones: trackingType === 'checklist' ? milestones : undefined,
+      category: category || undefined,
+      autoTrack,
     };
 
     if (editGoal) {
@@ -143,7 +152,7 @@ export function CreateGoalDialog({ editGoal, onClose }: CreateGoalDialogProps) {
           <div className="space-y-2">
             <Label>Tracking Type</Label>
             <Select value={trackingType} onValueChange={(v) => setTrackingType(v as GoalTrackingType)}>
-              <SelectTrigger>
+          <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -152,6 +161,33 @@ export function CreateGoalDialog({ editGoal, onClose }: CreateGoalDialogProps) {
                 <SelectItem value="checklist">Checklist / Milestones</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Category */}
+          <div className="space-y-2">
+            <Label>Category (optional)</Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select category..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">None</SelectItem>
+                {allCategories.map(cat => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Auto Track Toggle */}
+          <div className="flex items-center justify-between py-2">
+            <div>
+              <Label>Auto-track Progress</Label>
+              <p className="text-xs text-muted-foreground">
+                Update progress from linked habits & tasks
+              </p>
+            </div>
+            <Switch checked={autoTrack} onCheckedChange={setAutoTrack} />
           </div>
 
           {trackingType === 'numeric' && (
@@ -165,6 +201,9 @@ export function CreateGoalDialog({ editGoal, onClose }: CreateGoalDialogProps) {
                 placeholder="e.g., 20"
                 min="1"
               />
+              <p className="text-xs text-muted-foreground">
+                You can manually input progress values
+              </p>
             </div>
           )}
 

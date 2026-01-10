@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppProvider } from "@/context/AppContext";
 import { BottomNav } from "@/components/layout/BottomNav";
 import Index from "./pages/Index";
+import DashboardPage from "./pages/DashboardPage";
+import CalendarPage from "./pages/CalendarPage";
 import GoalsPage from "./pages/GoalsPage";
 import TasksPage from "./pages/TasksPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
@@ -22,7 +24,9 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/habits" element={<Index />} />
+            <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/goals" element={<GoalsPage />} />
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />

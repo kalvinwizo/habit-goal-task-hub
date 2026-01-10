@@ -3,27 +3,46 @@ import { PageContainer } from '@/components/layout/PageContainer';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { HabitCard } from '@/components/habits/HabitCard';
 import { CreateHabitDialog } from '@/components/habits/CreateHabitDialog';
+import { HabitFiltersComponent, HabitFilters } from '@/components/habits/HabitFilters';
 import { useApp } from '@/context/AppContext';
 import { Habit } from '@/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Archive, Repeat } from 'lucide-react';
 
 export default function HabitsPage() {
-  const { habits, archivedHabits, updateHabit } = useApp();
+  const { habits, archivedHabits, updateHabit, customCategories } = useApp();
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
+  const [filters, setFilters] = useState<HabitFilters>({
+    categories: [],
+    difficulties: [],
+    frequencies: [],
+  });
 
   const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
   const todayDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
   // Filter habits for today
   const todayDayIndex = new Date().getDay();
+  const todayDayOfMonth = new Date().getDate();
+  
   const todaysHabits = habits.filter(habit => {
-    if (habit.frequency === 'daily') return true;
-    if (habit.frequency === 'weekly') return true; // Show weekly habits every day, user decides when to complete
-    if (habit.frequency === 'specific') {
-      return habit.specificDays?.includes(todayDayIndex);
-    }
-    return false;
+    // Time filter
+    let showToday = false;
+    if (habit.frequency === 'daily') showToday = true;
+    else if (habit.frequency === 'weekly') showToday = true;
+    else if (habit.frequency === 'specific') showToday = habit.specificDays?.includes(todayDayIndex) ?? false;
+    else if (habit.frequency === 'monthly') showToday = habit.monthlyDates?.includes(todayDayOfMonth) ?? false;
+    
+    if (!showToday) return false;
+
+    // Category filter
+    if (filters.categories.length > 0 && !filters.categories.includes(habit.category)) return false;
+    // Difficulty filter
+    if (filters.difficulties.length > 0 && !filters.difficulties.includes(habit.difficulty)) return false;
+    // Frequency filter
+    if (filters.frequencies.length > 0 && !filters.frequencies.includes(habit.frequency)) return false;
+    
+    return true;
   });
 
   const unarchiveHabit = (id: string) => {
@@ -35,7 +54,16 @@ export default function HabitsPage() {
       <PageHeader 
         title="Habits" 
         subtitle={`${todayName}, ${todayDate}`}
-        action={<CreateHabitDialog />}
+        action={
+          <div className="flex items-center gap-2">
+            <HabitFiltersComponent 
+              filters={filters} 
+              onFiltersChange={setFilters}
+              customCategories={customCategories.map(c => c.name)}
+            />
+            <CreateHabitDialog />
+          </div>
+        }
       />
 
       <Tabs defaultValue="today" className="w-full">

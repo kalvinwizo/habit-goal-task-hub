@@ -1,5 +1,22 @@
+// Category Types
+export interface Category {
+  id: string;
+  name: string;
+  color: string;
+  isPreset: boolean;
+}
+
+export const PRESET_CATEGORIES: Category[] = [
+  { id: 'health', name: 'Health', color: 'hsl(142, 76%, 36%)', isPreset: true },
+  { id: 'work', name: 'Work', color: 'hsl(221, 83%, 53%)', isPreset: true },
+  { id: 'personal', name: 'Personal', color: 'hsl(262, 83%, 58%)', isPreset: true },
+  { id: 'finance', name: 'Finance', color: 'hsl(45, 93%, 47%)', isPreset: true },
+  { id: 'learning', name: 'Learning', color: 'hsl(199, 89%, 48%)', isPreset: true },
+  { id: 'relationships', name: 'Relationships', color: 'hsl(350, 89%, 60%)', isPreset: true },
+];
+
 // Habit Types
-export type HabitFrequency = 'daily' | 'weekly' | 'specific';
+export type HabitFrequency = 'daily' | 'weekly' | 'specific' | 'monthly';
 export type HabitDifficulty = 'easy' | 'medium' | 'hard';
 export type HabitState = 'done' | 'skipped' | 'missed' | 'pending';
 
@@ -10,6 +27,7 @@ export interface Habit {
   difficulty: HabitDifficulty;
   frequency: HabitFrequency;
   specificDays?: number[]; // 0-6 for Sunday-Saturday
+  monthlyDates?: number[]; // 1-31 for specific dates of month
   reminderTimes?: string[];
   notes?: string;
   archived: boolean;
@@ -17,6 +35,8 @@ export interface Habit {
   currentStreak: number;
   bestStreak: number;
   linkedGoalId?: string;
+  numericValue?: number; // For numeric tracking
+  targetNumericValue?: number; // Target for numeric habits
 }
 
 export interface HabitLog {
@@ -24,6 +44,7 @@ export interface HabitLog {
   habitId: string;
   date: string; // YYYY-MM-DD
   state: HabitState;
+  numericValue?: number; // Actual value logged
 }
 
 // Goal Types
@@ -48,6 +69,8 @@ export interface Goal {
   linkedTaskIds: string[];
   completed: boolean;
   createdAt: string;
+  category?: string;
+  autoTrack: boolean; // Auto-track progress from linked items
 }
 
 // Task Types
@@ -58,10 +81,14 @@ export interface Task {
   title: string;
   type: TaskType;
   dates?: string[]; // For monthly tasks - specific dates
+  monthlyDates?: number[]; // 1-31 for recurring monthly tasks
   linkedGoalId?: string;
   completed: boolean;
   completedDates: string[]; // Track completion per date for recurring
   createdAt: string;
+  category?: string;
+  numericValue?: number; // For numeric contribution to goals
+  targetNumericValue?: number;
 }
 
 // Settings Types
@@ -73,6 +100,7 @@ export interface Settings {
   streakReminders: boolean;
   dailySummary: boolean;
   showStreaks: boolean;
+  notificationsEnabled: boolean;
 }
 
 // Analytics Types

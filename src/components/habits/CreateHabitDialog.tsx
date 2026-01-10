@@ -19,9 +19,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useApp } from '@/context/AppContext';
-import { Habit, HabitDifficulty, HabitFrequency } from '@/types';
+import { Habit, HabitDifficulty, HabitFrequency, PRESET_CATEGORIES } from '@/types';
+import { MonthDayPicker } from '@/components/ui/month-day-picker';
 
-const categories = ['Health', 'Fitness', 'Learning', 'Productivity', 'Mindfulness', 'Social', 'Finance', 'Other'];
 const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 interface CreateHabitDialogProps {
@@ -30,14 +30,19 @@ interface CreateHabitDialogProps {
 }
 
 export function CreateHabitDialog({ editHabit, onClose }: CreateHabitDialogProps) {
-  const { addHabit, updateHabit } = useApp();
+  const { addHabit, updateHabit, customCategories, goals } = useApp();
   const [open, setOpen] = useState(!!editHabit);
   const [name, setName] = useState(editHabit?.name || '');
   const [category, setCategory] = useState(editHabit?.category || 'Health');
   const [difficulty, setDifficulty] = useState<HabitDifficulty>(editHabit?.difficulty || 'medium');
   const [frequency, setFrequency] = useState<HabitFrequency>(editHabit?.frequency || 'daily');
   const [specificDays, setSpecificDays] = useState<number[]>(editHabit?.specificDays || []);
+  const [monthlyDates, setMonthlyDates] = useState<number[]>(editHabit?.monthlyDates || []);
   const [notes, setNotes] = useState(editHabit?.notes || '');
+  const [linkedGoalId, setLinkedGoalId] = useState(editHabit?.linkedGoalId || '');
+
+  const allCategories = [...PRESET_CATEGORIES.map(c => c.name), ...customCategories.map(c => c.name)];
+  const activeGoals = goals.filter(g => !g.completed);
 
   const resetForm = () => {
     setName('');
@@ -45,7 +50,9 @@ export function CreateHabitDialog({ editHabit, onClose }: CreateHabitDialogProps
     setDifficulty('medium');
     setFrequency('daily');
     setSpecificDays([]);
+    setMonthlyDates([]);
     setNotes('');
+    setLinkedGoalId('');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -58,7 +65,9 @@ export function CreateHabitDialog({ editHabit, onClose }: CreateHabitDialogProps
       difficulty,
       frequency,
       specificDays: frequency === 'specific' ? specificDays : undefined,
+      monthlyDates: frequency === 'monthly' ? monthlyDates : undefined,
       notes: notes.trim() || undefined,
+      linkedGoalId: linkedGoalId || undefined,
     };
 
     if (editHabit) {
@@ -121,7 +130,7 @@ export function CreateHabitDialog({ editHabit, onClose }: CreateHabitDialogProps
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map(cat => (
+                  {allCategories.map(cat => (
                     <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                   ))}
                 </SelectContent>
@@ -152,14 +161,15 @@ export function CreateHabitDialog({ editHabit, onClose }: CreateHabitDialogProps
               <SelectContent>
                 <SelectItem value="daily">Daily</SelectItem>
                 <SelectItem value="weekly">Weekly</SelectItem>
-                <SelectItem value="specific">Specific Days</SelectItem>
+                <SelectItem value="specific">Specific Days of Week</SelectItem>
+                <SelectItem value="monthly">Specific Days of Month</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {frequency === 'specific' && (
             <div className="space-y-2">
-              <Label>Select Days</Label>
+              <Label>Select Days of Week</Label>
               <div className="flex gap-1.5">
                 {weekDays.map((day, index) => (
                   <button
@@ -176,6 +186,30 @@ export function CreateHabitDialog({ editHabit, onClose }: CreateHabitDialogProps
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {frequency === 'monthly' && (
+            <div className="space-y-2">
+              <Label>Select Days of Month</Label>
+              <MonthDayPicker selectedDays={monthlyDates} onChange={setMonthlyDates} />
+            </div>
+          )}
+
+          {activeGoals.length > 0 && (
+            <div className="space-y-2">
+              <Label>Link to Goal (optional)</Label>
+              <Select value={linkedGoalId} onValueChange={setLinkedGoalId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a goal..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No goal</SelectItem>
+                  {activeGoals.map(goal => (
+                    <SelectItem key={goal.id} value={goal.id}>{goal.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
