@@ -1,0 +1,216 @@
+import { useState } from 'react';
+import { Plus, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useApp } from '@/context/AppContext';
+import { Goal, GoalTrackingType, GoalMilestone } from '@/types';
+
+interface CreateGoalDialogProps {
+  editGoal?: Goal | null;
+  onClose?: () => void;
+}
+
+export function CreateGoalDialog({ editGoal, onClose }: CreateGoalDialogProps) {
+  const { addGoal, updateGoal } = useApp();
+  const [open, setOpen] = useState(!!editGoal);
+  const [title, setTitle] = useState(editGoal?.title || '');
+  const [why, setWhy] = useState(editGoal?.why || '');
+  const [targetDate, setTargetDate] = useState(editGoal?.targetDate || '');
+  const [trackingType, setTrackingType] = useState<GoalTrackingType>(editGoal?.trackingType || 'percentage');
+  const [targetValue, setTargetValue] = useState(editGoal?.targetValue?.toString() || '');
+  const [milestones, setMilestones] = useState<GoalMilestone[]>(editGoal?.milestones || []);
+  const [newMilestone, setNewMilestone] = useState('');
+
+  const resetForm = () => {
+    setTitle('');
+    setWhy('');
+    setTargetDate('');
+    setTrackingType('percentage');
+    setTargetValue('');
+    setMilestones([]);
+    setNewMilestone('');
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !targetDate) return;
+
+    const goalData = {
+      title: title.trim(),
+      why: why.trim() || undefined,
+      targetDate,
+      trackingType,
+      targetValue: trackingType === 'numeric' ? parseInt(targetValue) || undefined : undefined,
+      milestones: trackingType === 'checklist' ? milestones : undefined,
+    };
+
+    if (editGoal) {
+      updateGoal(editGoal.id, goalData);
+    } else {
+      addGoal(goalData);
+    }
+
+    resetForm();
+    setOpen(false);
+    onClose?.();
+  };
+
+  const addMilestone = () => {
+    if (!newMilestone.trim()) return;
+    setMilestones([
+      ...milestones,
+      { id: Date.now().toString(), title: newMilestone.trim(), completed: false }
+    ]);
+    setNewMilestone('');
+  };
+
+  const removeMilestone = (id: string) => {
+    setMilestones(milestones.filter(m => m.id !== id));
+  };
+
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      resetForm();
+      onClose?.();
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      {!editGoal && (
+        <DialogTrigger asChild>
+          <Button size="icon" className="rounded-full shadow-elevated">
+            <Plus className="w-5 h-5" />
+          </Button>
+        </DialogTrigger>
+      )}
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{editGoal ? 'Edit Goal' : 'Create New Goal'}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="title">Goal Title</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g., Run a marathon"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="why">Why this goal? (optional)</Label>
+            <Textarea
+              id="why"
+              value={why}
+              onChange={(e) => setWhy(e.target.value)}
+              placeholder="Your motivation..."
+              rows={2}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="targetDate">Target Date</Label>
+            <Input
+              id="targetDate"
+              type="date"
+              value={targetDate}
+              onChange={(e) => setTargetDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Tracking Type</Label>
+            <Select value={trackingType} onValueChange={(v) => setTrackingType(v as GoalTrackingType)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="percentage">Percentage (0-100%)</SelectItem>
+                <SelectItem value="numeric">Numeric Target</SelectItem>
+                <SelectItem value="checklist">Checklist / Milestones</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {trackingType === 'numeric' && (
+            <div className="space-y-2">
+              <Label htmlFor="targetValue">Target Value</Label>
+              <Input
+                id="targetValue"
+                type="number"
+                value={targetValue}
+                onChange={(e) => setTargetValue(e.target.value)}
+                placeholder="e.g., 20"
+                min="1"
+              />
+            </div>
+          )}
+
+          {trackingType === 'checklist' && (
+            <div className="space-y-2">
+              <Label>Milestones</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={newMilestone}
+                  onChange={(e) => setNewMilestone(e.target.value)}
+                  placeholder="Add a milestone..."
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addMilestone())}
+                />
+                <Button type="button" size="icon" variant="outline" onClick={addMilestone}>
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+              {milestones.length > 0 && (
+                <div className="space-y-1.5 mt-2">
+                  {milestones.map(milestone => (
+                    <div key={milestone.id} className="flex items-center gap-2 text-sm bg-muted/50 rounded-lg px-3 py-2">
+                      <span className="flex-1">{milestone.title}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeMilestone(milestone.id)}
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <Button type="button" variant="outline" className="flex-1" onClick={() => handleOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" className="flex-1">
+              {editGoal ? 'Save Changes' : 'Create Goal'}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
