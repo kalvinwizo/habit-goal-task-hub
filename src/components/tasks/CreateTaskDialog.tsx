@@ -144,15 +144,14 @@ export function CreateTaskDialog({ editTask, onClose }: CreateTaskDialogProps) {
             </Select>
           </div>
 
-          {/* Category */}
           <div className="space-y-2">
             <Label>Category (optional)</Label>
-            <Select value={category} onValueChange={setCategory}>
+            <Select value={category || "none"} onValueChange={(v) => setCategory(v === "none" ? "" : v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select category..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {allCategories.map(cat => (
                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                 ))}
@@ -201,16 +200,15 @@ export function CreateTaskDialog({ editTask, onClose }: CreateTaskDialogProps) {
             </>
           )}
 
-          {/* Link to Goal */}
           {activeGoals.length > 0 && (
             <div className="space-y-2">
               <Label>Link to Goal (optional)</Label>
-              <Select value={linkedGoalId} onValueChange={setLinkedGoalId}>
+              <Select value={linkedGoalId || "none"} onValueChange={(v) => setLinkedGoalId(v === "none" ? "" : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a goal..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No goal</SelectItem>
+                  <SelectItem value="none">No goal</SelectItem>
                   {activeGoals.map(goal => (
                     <SelectItem key={goal.id} value={goal.id}>{goal.title}</SelectItem>
                   ))}

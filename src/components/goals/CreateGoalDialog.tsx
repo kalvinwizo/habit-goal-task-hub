@@ -170,12 +170,12 @@ export function CreateGoalDialog({ editGoal, onClose }: CreateGoalDialogProps) {
           {/* Category */}
           <div className="space-y-2">
             <Label>Category (optional)</Label>
-            <Select value={category} onValueChange={setCategory}>
+            <Select value={category || "none"} onValueChange={(v) => setCategory(v === "none" ? "" : v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select category..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {allCategories.map(cat => (
                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                 ))}
