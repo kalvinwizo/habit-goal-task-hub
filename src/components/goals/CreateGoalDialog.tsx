@@ -21,6 +21,7 @@ import {
 import { useApp } from '@/context/AppContext';
 import { Goal, GoalTrackingType, GoalMilestone, PRESET_CATEGORIES } from '@/types';
 import { Switch } from '@/components/ui/switch';
+import { ReminderInput } from '@/components/reminders/ReminderInput';
 
 interface CreateGoalDialogProps {
   editGoal?: Goal | null;
@@ -28,7 +29,7 @@ interface CreateGoalDialogProps {
 }
 
 export function CreateGoalDialog({ editGoal, onClose }: CreateGoalDialogProps) {
-  const { addGoal, updateGoal, customCategories, habits, tasks } = useApp();
+  const { addGoal, updateGoal, customCategories } = useApp();
   const [open, setOpen] = useState(!!editGoal);
   const [title, setTitle] = useState(editGoal?.title || '');
   const [why, setWhy] = useState(editGoal?.why || '');
@@ -39,6 +40,7 @@ export function CreateGoalDialog({ editGoal, onClose }: CreateGoalDialogProps) {
   const [newMilestone, setNewMilestone] = useState('');
   const [category, setCategory] = useState(editGoal?.category || '');
   const [autoTrack, setAutoTrack] = useState(editGoal?.autoTrack ?? true);
+  const [reminderTimes, setReminderTimes] = useState<string[]>(editGoal?.reminderTimes || []);
 
   const allCategories = [...PRESET_CATEGORIES.map(c => c.name), ...customCategories.map(c => c.name)];
 
@@ -52,6 +54,7 @@ export function CreateGoalDialog({ editGoal, onClose }: CreateGoalDialogProps) {
     setNewMilestone('');
     setCategory('');
     setAutoTrack(true);
+    setReminderTimes([]);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -67,6 +70,7 @@ export function CreateGoalDialog({ editGoal, onClose }: CreateGoalDialogProps) {
       milestones: trackingType === 'checklist' ? milestones : undefined,
       category: category || undefined,
       autoTrack,
+      reminderTimes: reminderTimes.length > 0 ? reminderTimes : undefined,
     };
 
     if (editGoal) {
@@ -152,7 +156,7 @@ export function CreateGoalDialog({ editGoal, onClose }: CreateGoalDialogProps) {
           <div className="space-y-2">
             <Label>Tracking Type</Label>
             <Select value={trackingType} onValueChange={(v) => setTrackingType(v as GoalTrackingType)}>
-          <SelectTrigger>
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -239,6 +243,12 @@ export function CreateGoalDialog({ editGoal, onClose }: CreateGoalDialogProps) {
               )}
             </div>
           )}
+
+          {/* Reminders */}
+          <ReminderInput
+            reminders={reminderTimes}
+            onChange={setReminderTimes}
+          />
 
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="outline" className="flex-1" onClick={() => handleOpenChange(false)}>

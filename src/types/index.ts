@@ -71,6 +71,7 @@ export interface Goal {
   createdAt: string;
   category?: string;
   autoTrack: boolean; // Auto-track progress from linked items
+  reminderTimes?: string[]; // Multiple reminder times
 }
 
 // Task Types
@@ -89,6 +90,7 @@ export interface Task {
   category?: string;
   numericValue?: number; // For numeric contribution to goals
   targetNumericValue?: number;
+  reminderTimes?: string[]; // Multiple reminder times
 }
 
 // Settings Types
