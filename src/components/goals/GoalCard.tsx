@@ -1,4 +1,4 @@
-import { Target, Calendar, MoreVertical, Edit, Trash2, Check, Clock } from 'lucide-react';
+import { Target, Calendar, MoreVertical, Edit, Trash2, Check } from 'lucide-react';
 import { Goal } from '@/types';
 import { useApp } from '@/context/AppContext';
 import {
@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { format, differenceInDays, differenceInMilliseconds } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 
 interface GoalCardProps {
   goal: Goal;
@@ -19,11 +19,6 @@ export function GoalCard({ goal, onEdit }: GoalCardProps) {
   
   const daysRemaining = differenceInDays(new Date(goal.targetDate), new Date());
   const isOverdue = daysRemaining < 0;
-  
-  // Calculate time progress (how much time has passed)
-  const totalDuration = differenceInMilliseconds(new Date(goal.targetDate), new Date(goal.createdAt));
-  const elapsed = differenceInMilliseconds(new Date(), new Date(goal.createdAt));
-  const timeProgress = Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
   
   // Calculate progress based on tracking type
   let progress = goal.currentProgress;
@@ -83,7 +78,7 @@ export function GoalCard({ goal, onEdit }: GoalCardProps) {
           </div>
 
           {/* Progress bar */}
-          <div className="mt-3 space-y-2">
+          <div className="mt-3">
             <div className="flex items-center justify-between text-xs mb-1.5">
               <span className="font-medium">{progress}% complete</span>
               {goal.trackingType === 'numeric' && goal.targetValue && (
@@ -98,34 +93,6 @@ export function GoalCard({ goal, onEdit }: GoalCardProps) {
                 style={{ width: `${progress}%` }}
               />
             </div>
-
-            {/* Time remaining bar */}
-            {!goal.completed && (
-              <div className="space-y-1">
-                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    Time elapsed
-                  </span>
-                  <span>{Math.round(timeProgress)}%</span>
-                </div>
-                <div className="h-1.5 bg-muted/50 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      timeProgress > progress 
-                        ? 'bg-warning' 
-                        : 'bg-success/60'
-                    }`}
-                    style={{ width: `${timeProgress}%` }}
-                  />
-                </div>
-                {timeProgress > progress && (
-                  <p className="text-[10px] text-warning">
-                    Behind schedule - {Math.round(timeProgress - progress)}% more time used than progress made
-                  </p>
-                )}
-              </div>
-            )}
           </div>
 
           {/* Meta info */}

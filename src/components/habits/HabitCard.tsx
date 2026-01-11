@@ -1,5 +1,4 @@
-import { useState, useRef } from 'react';
-import { Check, X, SkipForward, Flame, MoreVertical, Archive, Edit, Hash, Timer, ListChecks } from 'lucide-react';
+import { Check, X, SkipForward, Flame, MoreVertical, Archive, Edit, Trash2 } from 'lucide-react';
 import { Habit, HabitState } from '@/types';
 import { useApp } from '@/context/AppContext';
 import {
@@ -19,66 +18,6 @@ export function HabitCard({ habit, onEdit }: HabitCardProps) {
   const today = getTodayString();
   const todayLog = getHabitLogForDate(habit.id, today);
   const currentState = todayLog?.state || 'pending';
-  
-  const [tapCount, setTapCount] = useState(0);
-  const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
-  const [swipeOffset, setSwipeOffset] = useState(0);
-  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
-
-  const handleTap = () => {
-    if (tapTimeoutRef.current) {
-      clearTimeout(tapTimeoutRef.current);
-    }
-
-    const newTapCount = tapCount + 1;
-    setTapCount(newTapCount);
-
-    tapTimeoutRef.current = setTimeout(() => {
-      if (newTapCount === 1) {
-        // Single tap: Mark as done
-        logHabit(habit.id, 'done');
-      } else if (newTapCount >= 2) {
-        // Double tap: Mark as missed
-        logHabit(habit.id, 'missed');
-      }
-      setTapCount(0);
-    }, 300);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!touchStart) return;
-    const deltaX = e.touches[0].clientX - touchStart.x;
-    const deltaY = Math.abs(e.touches[0].clientY - touchStart.y);
-    
-    // Only allow horizontal swipes
-    if (deltaY > 30) {
-      setSwipeOffset(0);
-      return;
-    }
-    
-    setSwipeOffset(Math.max(-100, Math.min(100, deltaX)));
-    if (deltaX > 30) setSwipeDirection('right');
-    else if (deltaX < -30) setSwipeDirection('left');
-    else setSwipeDirection(null);
-  };
-
-  const handleTouchEnd = () => {
-    if (swipeOffset > 60) {
-      // Swipe right: Skip
-      logHabit(habit.id, 'skipped');
-    } else if (swipeOffset < -60) {
-      // Swipe left: Miss
-      logHabit(habit.id, 'missed');
-    }
-    setSwipeOffset(0);
-    setSwipeDirection(null);
-    setTouchStart(null);
-  };
 
   const handleStateChange = (state: HabitState) => {
     if (state === 'pending') return;
@@ -95,75 +34,41 @@ export function HabitCard({ habit, onEdit }: HabitCardProps) {
     daily: 'Daily',
     weekly: 'Weekly',
     specific: habit.specificDays?.map(d => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]).join(', ') || 'Specific days',
-    monthly: habit.monthlyDates?.map(d => d.toString()).join(', ') || 'Monthly',
   }[habit.frequency];
 
-  const getStateColor = () => {
-    switch (currentState) {
-      case 'done': return 'ring-2 ring-success bg-success/10';
-      case 'missed': return 'ring-2 ring-destructive bg-destructive/10';
-      case 'skipped': return 'ring-2 ring-muted-foreground bg-muted/50';
-      default: return '';
-    }
-  };
-
-  const getEvaluationIcon = () => {
-    switch (habit.evaluationType) {
-      case 'numeric': return <Hash className="w-3.5 h-3.5" />;
-      case 'timer': return <Timer className="w-3.5 h-3.5" />;
-      case 'checklist': return <ListChecks className="w-3.5 h-3.5" />;
-      default: return null;
-    }
-  };
-
   return (
-    <div 
-      className={`card-elevated p-4 fade-in relative overflow-hidden transition-all duration-200 ${getStateColor()}`}
-      style={{ 
-        transform: `translateX(${swipeOffset}px)`,
-        opacity: 1 - Math.abs(swipeOffset) / 200
-      }}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      {/* Swipe indicators */}
-      {swipeDirection === 'right' && (
-        <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-skipped/30 to-transparent flex items-center justify-center">
-          <SkipForward className="w-6 h-6 text-skipped" />
-        </div>
-      )}
-      {swipeDirection === 'left' && (
-        <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-destructive/30 to-transparent flex items-center justify-center">
-          <X className="w-6 h-6 text-destructive" />
-        </div>
-      )}
-
+    <div className="card-elevated p-4 fade-in">
       <div className="flex items-start gap-3">
-        {/* Tap completion button */}
-        <button
-          onClick={handleTap}
-          className={`habit-state-btn shrink-0 transition-all duration-200 ${
-            currentState === 'done' 
-              ? 'habit-state-done scale-110' 
-              : currentState === 'missed'
-                ? 'bg-destructive text-destructive-foreground scale-110'
-                : currentState === 'skipped'
-                  ? 'bg-muted-foreground text-background'
-                  : 'habit-state-pending'
-          }`}
-          title="Tap: done, Double-tap: missed"
-        >
-          {currentState === 'done' ? (
+        {/* State buttons */}
+        <div className="flex flex-col gap-1.5">
+          <button
+            onClick={() => handleStateChange('done')}
+            className={`habit-state-btn ${currentState === 'done' ? 'habit-state-done' : 'habit-state-pending'}`}
+            title="Mark as done"
+          >
             <Check className="w-5 h-5" />
-          ) : currentState === 'missed' ? (
-            <X className="w-5 h-5" />
-          ) : currentState === 'skipped' ? (
-            <SkipForward className="w-5 h-5" />
-          ) : (
-            <Check className="w-5 h-5" />
-          )}
-        </button>
+          </button>
+          <div className="flex gap-1">
+            <button
+              onClick={() => handleStateChange('skipped')}
+              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
+                currentState === 'skipped' ? 'bg-skipped text-skipped-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'
+              }`}
+              title="Skip (won't break streak)"
+            >
+              <SkipForward className="w-3 h-3" />
+            </button>
+            <button
+              onClick={() => handleStateChange('missed')}
+              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
+                currentState === 'missed' ? 'bg-missed text-missed-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'
+              }`}
+              title="Miss (breaks streak)"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
@@ -174,17 +79,6 @@ export function HabitCard({ habit, onEdit }: HabitCardProps) {
                 <span className="text-xs text-muted-foreground">{habit.category}</span>
                 <span className="text-xs text-muted-foreground">•</span>
                 <span className="text-xs text-muted-foreground">{frequencyLabel}</span>
-                {getEvaluationIcon() && (
-                  <>
-                    <span className="text-xs text-muted-foreground">•</span>
-                    <span className="flex items-center gap-1 text-xs text-primary">
-                      {getEvaluationIcon()}
-                      {habit.evaluationType === 'numeric' && habit.targetNumericValue && `/${habit.targetNumericValue}`}
-                      {habit.evaluationType === 'timer' && habit.targetTimerValue && `/${Math.floor(habit.targetTimerValue / 60)}min`}
-                      {habit.evaluationType === 'checklist' && habit.checklistItems && `${habit.checklistItems.length} items`}
-                    </span>
-                  </>
-                )}
                 <span className={`difficulty-badge ${difficultyClass}`}>{habit.difficulty}</span>
               </div>
             </div>
@@ -196,18 +90,6 @@ export function HabitCard({ habit, onEdit }: HabitCardProps) {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleStateChange('done')}>
-                  <Check className="w-4 h-4 mr-2 text-success" />
-                  Mark Done
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleStateChange('skipped')}>
-                  <SkipForward className="w-4 h-4 mr-2" />
-                  Skip (keeps streak)
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleStateChange('missed')}>
-                  <X className="w-4 h-4 mr-2 text-destructive" />
-                  Mark Missed
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onEdit?.(habit)}>
                   <Edit className="w-4 h-4 mr-2" />
                   Edit

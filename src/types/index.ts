@@ -19,13 +19,6 @@ export const PRESET_CATEGORIES: Category[] = [
 export type HabitFrequency = 'daily' | 'weekly' | 'specific' | 'monthly';
 export type HabitDifficulty = 'easy' | 'medium' | 'hard';
 export type HabitState = 'done' | 'skipped' | 'missed' | 'pending';
-export type HabitEvaluationType = 'yes_no' | 'numeric' | 'timer' | 'checklist';
-
-export interface HabitChecklistItem {
-  id: string;
-  title: string;
-  completed: boolean;
-}
 
 export interface Habit {
   id: string;
@@ -33,7 +26,6 @@ export interface Habit {
   category: string;
   difficulty: HabitDifficulty;
   frequency: HabitFrequency;
-  evaluationType: HabitEvaluationType;
   specificDays?: number[]; // 0-6 for Sunday-Saturday
   monthlyDates?: number[]; // 1-31 for specific dates of month
   reminderTimes?: string[];
@@ -43,9 +35,8 @@ export interface Habit {
   currentStreak: number;
   bestStreak: number;
   linkedGoalId?: string;
+  numericValue?: number; // For numeric tracking
   targetNumericValue?: number; // Target for numeric habits
-  targetTimerValue?: number; // Target in seconds for timer habits
-  checklistItems?: HabitChecklistItem[]; // For checklist habits
 }
 
 export interface HabitLog {
@@ -54,8 +45,6 @@ export interface HabitLog {
   date: string; // YYYY-MM-DD
   state: HabitState;
   numericValue?: number; // Actual value logged
-  timerValue?: number; // Timer value in seconds
-  checklistProgress?: string[]; // IDs of completed items
 }
 
 // Goal Types
