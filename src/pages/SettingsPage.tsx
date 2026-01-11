@@ -13,13 +13,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Download, Upload, Moon, Sun, Clock, Calendar } from 'lucide-react';
+import { Download, Upload, Moon, Sun, Clock, Bell, Tag, Palette, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
+import { CategoryManager } from '@/components/categories/CategoryManager';
+import { useNotifications } from '@/hooks/useNotifications';
 
 const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export default function SettingsPage() {
-  const { settings, setSettings, exportData, importData } = useApp();
+  const { settings, setSettings, exportData, importData, customCategories, addCustomCategory, removeCustomCategory } = useApp();
+  const { isNative, requestPermissions } = useNotifications();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,6 +51,16 @@ export default function SettingsPage() {
     setSettings({ ...settings, [key]: value });
   };
 
+  const handleEnableNotifications = async () => {
+    const granted = await requestPermissions();
+    if (granted) {
+      updateSetting('notificationsEnabled', true);
+      toast.success('Notifications enabled!');
+    } else {
+      toast.error('Notification permission denied or not supported');
+    }
+  };
+
   return (
     <PageContainer>
       <PageHeader 
@@ -57,14 +70,17 @@ export default function SettingsPage() {
 
       <div className="space-y-6">
         {/* Appearance */}
-        <section className="card-elevated p-4 slide-up">
+        <section className="glass-card p-4 slide-up">
           <h3 className="font-semibold mb-4 flex items-center gap-2">
-            {settings.theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+            <Palette className="w-4 h-4 text-primary" />
             Appearance
           </h3>
           
           <div className="flex items-center justify-between">
-            <Label htmlFor="theme">Dark Mode</Label>
+            <div className="flex items-center gap-3">
+              {settings.theme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+              <Label htmlFor="theme">Dark Mode</Label>
+            </div>
             <Switch
               id="theme"
               checked={settings.theme === 'dark'}
@@ -77,9 +93,9 @@ export default function SettingsPage() {
         </section>
 
         {/* Time Settings */}
-        <section className="card-elevated p-4 slide-up" style={{ animationDelay: '0.05s' }}>
+        <section className="glass-card p-4 slide-up" style={{ animationDelay: '0.05s' }}>
           <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <Clock className="w-4 h-4" />
+            <Clock className="w-4 h-4 text-primary" />
             Time Settings
           </h3>
           
@@ -126,13 +142,39 @@ export default function SettingsPage() {
         </section>
 
         {/* Notifications */}
-        <section className="card-elevated p-4 slide-up" style={{ animationDelay: '0.1s' }}>
+        <section className="glass-card p-4 slide-up" style={{ animationDelay: '0.1s' }}>
           <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <Calendar className="w-4 h-4" />
-            Display Options
+            <Bell className="w-4 h-4 text-primary" />
+            Notifications
           </h3>
           
           <div className="space-y-4">
+          {isNative ? (
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Push Notifications</Label>
+                  <p className="text-xs text-muted-foreground">Get reminders on your device</p>
+                </div>
+                {settings.notificationsEnabled ? (
+                  <Switch
+                    checked={settings.notificationsEnabled}
+                    onCheckedChange={(checked) => updateSetting('notificationsEnabled', checked)}
+                  />
+                ) : (
+                  <Button size="sm" variant="outline" onClick={handleEnableNotifications}>
+                    Enable
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
+                <Smartphone className="w-5 h-5 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  Install this app on your device for push notifications
+                </p>
+              </div>
+            )}
+
             <div className="flex items-center justify-between">
               <div>
                 <Label>Streak Reminders</Label>
@@ -154,7 +196,17 @@ export default function SettingsPage() {
                 onCheckedChange={(checked) => updateSetting('dailySummary', checked)}
               />
             </div>
+          </div>
+        </section>
 
+        {/* Display Options */}
+        <section className="glass-card p-4 slide-up" style={{ animationDelay: '0.15s' }}>
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <Palette className="w-4 h-4 text-primary" />
+            Display Options
+          </h3>
+          
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <Label>Show Streaks</Label>
@@ -168,8 +220,22 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        {/* Categories */}
+        <section className="glass-card p-4 slide-up" style={{ animationDelay: '0.2s' }}>
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <Tag className="w-4 h-4 text-primary" />
+            Categories
+          </h3>
+          
+          <CategoryManager
+            customCategories={customCategories}
+            onAddCategory={addCustomCategory}
+            onRemoveCategory={removeCustomCategory}
+          />
+        </section>
+
         {/* Data Management */}
-        <section className="card-elevated p-4 slide-up" style={{ animationDelay: '0.15s' }}>
+        <section className="glass-card p-4 slide-up" style={{ animationDelay: '0.25s' }}>
           <h3 className="font-semibold mb-4">Data Management</h3>
           
           <div className="space-y-3">
@@ -205,7 +271,7 @@ export default function SettingsPage() {
         </section>
 
         {/* App Info */}
-        <section className="text-center py-4 text-muted-foreground text-sm">
+        <section className="text-center py-6 text-muted-foreground text-sm slide-up" style={{ animationDelay: '0.3s' }}>
           <p className="font-medium">Habit & Goal Tracker</p>
           <p className="text-xs mt-1">100% Free • Local-First • No Subscriptions</p>
         </section>
