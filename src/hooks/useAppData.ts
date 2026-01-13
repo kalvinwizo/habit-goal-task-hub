@@ -228,22 +228,48 @@ export function useAppData() {
   };
 
   // Export/Import data
-  const exportData = () => {
+  const exportData = (format: 'json' | 'csv' = 'json') => {
     const data = {
       habits,
       habitLogs,
       goals,
       tasks,
       settings,
+      customCategories,
       exportedAt: new Date().toISOString(),
     };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `tracker-backup-${getTodayString()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    
+    if (format === 'json') {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tracker-backup-${getTodayString()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      // CSV export for habits
+      const habitsCsv = [
+        ['Name', 'Category', 'Difficulty', 'Frequency', 'Current Streak', 'Best Streak', 'Created At'].join(','),
+        ...habits.map(h => [
+          `"${h.name}"`,
+          h.category,
+          h.difficulty,
+          h.frequency,
+          h.currentStreak,
+          h.bestStreak,
+          h.createdAt
+        ].join(','))
+      ].join('\n');
+      
+      const blob = new Blob([habitsCsv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `habits-export-${getTodayString()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   };
 
   const importData = (jsonString: string) => {
@@ -254,11 +280,27 @@ export function useAppData() {
       if (data.goals) setGoals(data.goals);
       if (data.tasks) setTasks(data.tasks);
       if (data.settings) setSettings(data.settings);
+      if (data.customCategories) setCustomCategories(data.customCategories);
       return true;
     } catch (error) {
       console.error('Error importing data:', error);
       return false;
     }
+  };
+
+  // Restore archived habit
+  const restoreHabit = (id: string) => {
+    updateHabit(id, { archived: false });
+  };
+
+  // Clear all data
+  const clearAllData = () => {
+    setHabits([]);
+    setHabitLogs([]);
+    setGoals([]);
+    setTasks([]);
+    setCustomCategories([]);
+    setSettings(defaultSettings);
   };
 
   return {
@@ -297,6 +339,8 @@ export function useAppData() {
     // Data management
     exportData,
     importData,
+    restoreHabit,
+    clearAllData,
     getTodayString,
   };
 }

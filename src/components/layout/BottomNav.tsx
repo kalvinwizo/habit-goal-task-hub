@@ -1,13 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Target, CheckSquare, BarChart3, Settings, Repeat, Home, Calendar } from 'lucide-react';
+import { Target, CheckSquare, BarChart3, Repeat, Home } from 'lucide-react';
 
 const navItems = [
   { path: '/', icon: Home, label: 'Home' },
   { path: '/habits', icon: Repeat, label: 'Habits' },
-  { path: '/calendar', icon: Calendar, label: 'Calendar' },
   { path: '/goals', icon: Target, label: 'Goals' },
   { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
-  { path: '/settings', icon: Settings, label: 'Settings' },
+  { path: '/analytics', icon: BarChart3, label: 'Analytics' },
 ];
 
 export function BottomNav() {

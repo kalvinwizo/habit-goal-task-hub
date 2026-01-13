@@ -13,16 +13,28 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Download, Upload, Moon, Sun, Clock, Bell, Tag, Palette, Smartphone } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Download, Upload, Moon, Sun, Clock, Bell, Tag, Palette, Smartphone, FileJson, FileSpreadsheet, Trash2, Star, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { CategoryManager } from '@/components/categories/CategoryManager';
 import { useNotifications } from '@/hooks/useNotifications';
+import { Link } from 'react-router-dom';
 
 const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export default function SettingsPage() {
-  const { settings, setSettings, exportData, importData, customCategories, addCustomCategory, removeCustomCategory } = useApp();
-  const { isNative, requestPermissions } = useNotifications();
+  const { settings, setSettings, exportData, importData, customCategories, addCustomCategory, removeCustomCategory, clearAllData } = useApp();
+  const { isNative, requestPermissions, scheduleDailySummary } = useNotifications();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,9 +54,14 @@ export default function SettingsPage() {
     reader.readAsText(file);
   };
 
-  const handleExport = () => {
-    exportData();
-    toast.success('Data exported successfully!');
+  const handleExportJSON = () => {
+    exportData('json');
+    toast.success('JSON backup exported!');
+  };
+
+  const handleExportCSV = () => {
+    exportData('csv');
+    toast.success('CSV export completed!');
   };
 
   const updateSetting = <K extends keyof typeof settings>(key: K, value: typeof settings[K]) => {
@@ -61,6 +78,19 @@ export default function SettingsPage() {
     }
   };
 
+  const handleDailySummaryChange = async (checked: boolean) => {
+    updateSetting('dailySummary', checked);
+    if (checked && settings.notificationsEnabled) {
+      await scheduleDailySummary(settings.defaultReminderTime);
+      toast.success('Daily summary reminder scheduled!');
+    }
+  };
+
+  const handleClearData = () => {
+    clearAllData();
+    toast.success('All data cleared!');
+  };
+
   return (
     <PageContainer>
       <PageHeader 
@@ -69,8 +99,25 @@ export default function SettingsPage() {
       />
 
       <div className="space-y-6">
+        {/* Premium/Features Link */}
+        <Link 
+          to="/premium" 
+          className="glass-card p-4 flex items-center justify-between slide-up group hover:bg-muted/60 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Star className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-medium">Features & Roadmap</h3>
+              <p className="text-xs text-muted-foreground">100% Free • View all features</p>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+        </Link>
+
         {/* Appearance */}
-        <section className="glass-card p-4 slide-up">
+        <section className="glass-card p-4 slide-up" style={{ animationDelay: '0.05s' }}>
           <h3 className="font-semibold mb-4 flex items-center gap-2">
             <Palette className="w-4 h-4 text-primary" />
             Appearance
@@ -93,7 +140,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Time Settings */}
-        <section className="glass-card p-4 slide-up" style={{ animationDelay: '0.05s' }}>
+        <section className="glass-card p-4 slide-up" style={{ animationDelay: '0.1s' }}>
           <h3 className="font-semibold mb-4 flex items-center gap-2">
             <Clock className="w-4 h-4 text-primary" />
             Time Settings
@@ -142,7 +189,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Notifications */}
-        <section className="glass-card p-4 slide-up" style={{ animationDelay: '0.1s' }}>
+        <section className="glass-card p-4 slide-up" style={{ animationDelay: '0.15s' }}>
           <h3 className="font-semibold mb-4 flex items-center gap-2">
             <Bell className="w-4 h-4 text-primary" />
             Notifications
@@ -193,14 +240,14 @@ export default function SettingsPage() {
               </div>
               <Switch
                 checked={settings.dailySummary}
-                onCheckedChange={(checked) => updateSetting('dailySummary', checked)}
+                onCheckedChange={handleDailySummaryChange}
               />
             </div>
           </div>
         </section>
 
         {/* Display Options */}
-        <section className="glass-card p-4 slide-up" style={{ animationDelay: '0.15s' }}>
+        <section className="glass-card p-4 slide-up" style={{ animationDelay: '0.2s' }}>
           <h3 className="font-semibold mb-4 flex items-center gap-2">
             <Palette className="w-4 h-4 text-primary" />
             Display Options
@@ -221,7 +268,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Categories */}
-        <section className="glass-card p-4 slide-up" style={{ animationDelay: '0.2s' }}>
+        <section className="glass-card p-4 slide-up" style={{ animationDelay: '0.25s' }}>
           <h3 className="font-semibold mb-4 flex items-center gap-2">
             <Tag className="w-4 h-4 text-primary" />
             Categories
@@ -235,17 +282,26 @@ export default function SettingsPage() {
         </section>
 
         {/* Data Management */}
-        <section className="glass-card p-4 slide-up" style={{ animationDelay: '0.25s' }}>
+        <section className="glass-card p-4 slide-up" style={{ animationDelay: '0.3s' }}>
           <h3 className="font-semibold mb-4">Data Management</h3>
           
           <div className="space-y-3">
             <Button 
               variant="outline" 
               className="w-full justify-start gap-2"
-              onClick={handleExport}
+              onClick={handleExportJSON}
             >
-              <Download className="w-4 h-4" />
-              Export Data Backup
+              <FileJson className="w-4 h-4" />
+              Export Full Backup (JSON)
+            </Button>
+
+            <Button 
+              variant="outline" 
+              className="w-full justify-start gap-2"
+              onClick={handleExportCSV}
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              Export Habits (CSV)
             </Button>
 
             <Button 
@@ -264,6 +320,33 @@ export default function SettingsPage() {
               className="hidden"
             />
 
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Clear All Data
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Clear All Data?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete all your habits, goals, tasks, and logs. 
+                    This action cannot be undone. Make sure to export a backup first.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleClearData} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Delete Everything
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
             <p className="text-xs text-muted-foreground mt-2">
               All data is stored locally on your device. Export regularly to create backups.
             </p>
@@ -271,7 +354,7 @@ export default function SettingsPage() {
         </section>
 
         {/* App Info */}
-        <section className="text-center py-6 text-muted-foreground text-sm slide-up" style={{ animationDelay: '0.3s' }}>
+        <section className="text-center py-6 text-muted-foreground text-sm slide-up" style={{ animationDelay: '0.35s' }}>
           <p className="font-medium">Habit & Goal Tracker</p>
           <p className="text-xs mt-1">100% Free • Local-First • No Subscriptions</p>
         </section>

@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Check, X, SkipForward, Flame, MoreVertical, Archive, Edit, Hash, Timer, ListChecks } from 'lucide-react';
+import { Check, X, SkipForward, Flame, MoreVertical, Archive, Edit, Hash, Timer, ListChecks, Eye } from 'lucide-react';
 import { Habit, HabitState } from '@/types';
 import { useApp } from '@/context/AppContext';
 import {
@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { HabitDetailDialog } from './HabitDetailDialog';
 
 interface HabitCardProps {
   habit: Habit;
@@ -25,6 +26,7 @@ export function HabitCard({ habit, onEdit }: HabitCardProps) {
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+  const [showDetail, setShowDetail] = useState(false);
 
   const handleTap = () => {
     if (tapTimeoutRef.current) {
@@ -117,131 +119,144 @@ export function HabitCard({ habit, onEdit }: HabitCardProps) {
   };
 
   return (
-    <div 
-      className={`card-elevated p-4 fade-in relative overflow-hidden transition-all duration-200 ${getStateColor()}`}
-      style={{ 
-        transform: `translateX(${swipeOffset}px)`,
-        opacity: 1 - Math.abs(swipeOffset) / 200
-      }}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      {/* Swipe indicators */}
-      {swipeDirection === 'right' && (
-        <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-skipped/30 to-transparent flex items-center justify-center">
-          <SkipForward className="w-6 h-6 text-skipped" />
-        </div>
-      )}
-      {swipeDirection === 'left' && (
-        <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-destructive/30 to-transparent flex items-center justify-center">
-          <X className="w-6 h-6 text-destructive" />
-        </div>
-      )}
-
-      <div className="flex items-start gap-3">
-        {/* Tap completion button */}
-        <button
-          onClick={handleTap}
-          className={`habit-state-btn shrink-0 transition-all duration-200 ${
-            currentState === 'done' 
-              ? 'habit-state-done scale-110' 
-              : currentState === 'missed'
-                ? 'bg-destructive text-destructive-foreground scale-110'
-                : currentState === 'skipped'
-                  ? 'bg-muted-foreground text-background'
-                  : 'habit-state-pending'
-          }`}
-          title="Tap: done, Double-tap: missed"
-        >
-          {currentState === 'done' ? (
-            <Check className="w-5 h-5" />
-          ) : currentState === 'missed' ? (
-            <X className="w-5 h-5" />
-          ) : currentState === 'skipped' ? (
-            <SkipForward className="w-5 h-5" />
-          ) : (
-            <Check className="w-5 h-5" />
-          )}
-        </button>
-
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <h3 className="font-semibold text-base leading-tight">{habit.name}</h3>
-              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                <span className="text-xs text-muted-foreground">{habit.category}</span>
-                <span className="text-xs text-muted-foreground">•</span>
-                <span className="text-xs text-muted-foreground">{frequencyLabel}</span>
-                {getEvaluationIcon() && (
-                  <>
-                    <span className="text-xs text-muted-foreground">•</span>
-                    <span className="flex items-center gap-1 text-xs text-primary">
-                      {getEvaluationIcon()}
-                      {habit.evaluationType === 'numeric' && habit.targetNumericValue && `/${habit.targetNumericValue}`}
-                      {habit.evaluationType === 'timer' && habit.targetTimerValue && `/${Math.floor(habit.targetTimerValue / 60)}min`}
-                      {habit.evaluationType === 'checklist' && habit.checklistItems && `${habit.checklistItems.length} items`}
-                    </span>
-                  </>
-                )}
-                <span className={`difficulty-badge ${difficultyClass}`}>{habit.difficulty}</span>
-              </div>
-            </div>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
-                  <MoreVertical className="w-4 h-4" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleStateChange('done')}>
-                  <Check className="w-4 h-4 mr-2 text-success" />
-                  Mark Done
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleStateChange('skipped')}>
-                  <SkipForward className="w-4 h-4 mr-2" />
-                  Skip (keeps streak)
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleStateChange('missed')}>
-                  <X className="w-4 h-4 mr-2 text-destructive" />
-                  Mark Missed
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onEdit?.(habit)}>
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => archiveHabit(habit.id)}>
-                  <Archive className="w-4 h-4 mr-2" />
-                  Archive
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+    <>
+      <div 
+        className={`card-elevated p-4 fade-in relative overflow-hidden transition-all duration-200 ${getStateColor()}`}
+        style={{ 
+          transform: `translateX(${swipeOffset}px)`,
+          opacity: 1 - Math.abs(swipeOffset) / 200
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Swipe indicators */}
+        {swipeDirection === 'right' && (
+          <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-skipped/30 to-transparent flex items-center justify-center">
+            <SkipForward className="w-6 h-6 text-skipped" />
           </div>
+        )}
+        {swipeDirection === 'left' && (
+          <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-destructive/30 to-transparent flex items-center justify-center">
+            <X className="w-6 h-6 text-destructive" />
+          </div>
+        )}
 
-          {/* Streak display */}
-          {settings.showStreaks && (
-            <div className="flex items-center gap-3 mt-3">
-              {habit.currentStreak > 0 && (
-                <div className="streak-badge">
-                  <Flame className="w-4 h-4" />
-                  <span>{habit.currentStreak} day{habit.currentStreak !== 1 ? 's' : ''}</span>
+        <div className="flex items-start gap-3">
+          {/* Tap completion button */}
+          <button
+            onClick={handleTap}
+            className={`habit-state-btn shrink-0 transition-all duration-200 ${
+              currentState === 'done' 
+                ? 'habit-state-done scale-110' 
+                : currentState === 'missed'
+                  ? 'bg-destructive text-destructive-foreground scale-110'
+                  : currentState === 'skipped'
+                    ? 'bg-muted-foreground text-background'
+                    : 'habit-state-pending'
+            }`}
+            title="Tap: done, Double-tap: missed"
+          >
+            {currentState === 'done' ? (
+              <Check className="w-5 h-5" />
+            ) : currentState === 'missed' ? (
+              <X className="w-5 h-5" />
+            ) : currentState === 'skipped' ? (
+              <SkipForward className="w-5 h-5" />
+            ) : (
+              <Check className="w-5 h-5" />
+            )}
+          </button>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3 className="font-semibold text-base leading-tight">{habit.name}</h3>
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                  <span className="text-xs text-muted-foreground">{habit.category}</span>
+                  <span className="text-xs text-muted-foreground">•</span>
+                  <span className="text-xs text-muted-foreground">{frequencyLabel}</span>
+                  {getEvaluationIcon() && (
+                    <>
+                      <span className="text-xs text-muted-foreground">•</span>
+                      <span className="flex items-center gap-1 text-xs text-primary">
+                        {getEvaluationIcon()}
+                        {habit.evaluationType === 'numeric' && habit.targetNumericValue && `/${habit.targetNumericValue}`}
+                        {habit.evaluationType === 'timer' && habit.targetTimerValue && `/${Math.floor(habit.targetTimerValue / 60)}min`}
+                        {habit.evaluationType === 'checklist' && habit.checklistItems && `${habit.checklistItems.length} items`}
+                      </span>
+                    </>
+                  )}
+                  <span className={`difficulty-badge ${difficultyClass}`}>{habit.difficulty}</span>
                 </div>
-              )}
-              {habit.bestStreak > 0 && habit.bestStreak > habit.currentStreak && (
-                <span className="text-xs text-muted-foreground">
-                  Best: {habit.bestStreak} days
-                </span>
-              )}
+              </div>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setShowDetail(true)}>
+                    <Eye className="w-4 h-4 mr-2" />
+                    View Details
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleStateChange('done')}>
+                    <Check className="w-4 h-4 mr-2 text-success" />
+                    Mark Done
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleStateChange('skipped')}>
+                    <SkipForward className="w-4 h-4 mr-2" />
+                    Skip (keeps streak)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleStateChange('missed')}>
+                    <X className="w-4 h-4 mr-2 text-destructive" />
+                    Mark Missed
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onEdit?.(habit)}>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => archiveHabit(habit.id)}>
+                    <Archive className="w-4 h-4 mr-2" />
+                    Archive
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-          )}
 
-          {habit.notes && (
-            <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{habit.notes}</p>
-          )}
+            {/* Streak display */}
+            {settings.showStreaks && (
+              <div className="flex items-center gap-3 mt-3">
+                {habit.currentStreak > 0 && (
+                  <div className="streak-badge">
+                    <Flame className="w-4 h-4" />
+                    <span>{habit.currentStreak} day{habit.currentStreak !== 1 ? 's' : ''}</span>
+                  </div>
+                )}
+                {habit.bestStreak > 0 && habit.bestStreak > habit.currentStreak && (
+                  <span className="text-xs text-muted-foreground">
+                    Best: {habit.bestStreak} days
+                  </span>
+                )}
+              </div>
+            )}
+
+            {habit.notes && (
+              <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{habit.notes}</p>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Habit Detail Dialog */}
+      <HabitDetailDialog 
+        habit={habit}
+        open={showDetail}
+        onClose={() => setShowDetail(false)}
+      />
+    </>
   );
 }
