@@ -33,7 +33,7 @@ import { Link } from 'react-router-dom';
 const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export default function SettingsPage() {
-  const { settings, setSettings, exportData, importData, customCategories, addCustomCategory, removeCustomCategory, clearAllData } = useApp();
+  const { settings, setSettings, exportData, customCategories, addCustomCategory, removeCustomCategory } = useApp();
   const { isNative, requestPermissions, scheduleDailySummary } = useNotifications();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
