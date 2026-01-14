@@ -1,15 +1,17 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useAppData } from '@/hooks/useAppData';
+import { useCloudSync } from '@/hooks/useCloudSync';
+import { useAuth } from '@/hooks/useAuth';
 
-type AppContextType = ReturnType<typeof useAppData>;
+type AppContextType = ReturnType<typeof useCloudSync> & { user: ReturnType<typeof useAuth>['user'] };
 
 const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const appData = useAppData();
+  const auth = useAuth();
+  const appData = useCloudSync();
   
   return (
-    <AppContext.Provider value={appData}>
+    <AppContext.Provider value={{ ...appData, user: auth.user }}>
       {children}
     </AppContext.Provider>
   );
