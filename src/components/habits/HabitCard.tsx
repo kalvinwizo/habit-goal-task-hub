@@ -23,10 +23,12 @@ export function HabitCard({ habit, onEdit }: HabitCardProps) {
   
   const [tapCount, setTapCount] = useState(0);
   const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [isLongPress, setIsLongPress] = useState(false);
 
   const handleTap = () => {
     if (tapTimeoutRef.current) {
@@ -50,12 +52,27 @@ export function HabitCard({ habit, onEdit }: HabitCardProps) {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+    setIsLongPress(false);
+    
+    // Start long-press timer
+    longPressTimeoutRef.current = setTimeout(() => {
+      setIsLongPress(true);
+      setShowDetail(true);
+      // Prevent any other actions after long press
+    }, 500);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!touchStart) return;
     const deltaX = e.touches[0].clientX - touchStart.x;
     const deltaY = Math.abs(e.touches[0].clientY - touchStart.y);
+    
+    // Cancel long-press if moving
+    if (Math.abs(deltaX) > 10 || deltaY > 10) {
+      if (longPressTimeoutRef.current) {
+        clearTimeout(longPressTimeoutRef.current);
+      }
+    }
     
     // Only allow horizontal swipes
     if (deltaY > 30) {
@@ -70,6 +87,20 @@ export function HabitCard({ habit, onEdit }: HabitCardProps) {
   };
 
   const handleTouchEnd = () => {
+    // Clear long-press timer
+    if (longPressTimeoutRef.current) {
+      clearTimeout(longPressTimeoutRef.current);
+    }
+    
+    // If it was a long-press, don't process swipe
+    if (isLongPress) {
+      setSwipeOffset(0);
+      setSwipeDirection(null);
+      setTouchStart(null);
+      setIsLongPress(false);
+      return;
+    }
+    
     if (swipeOffset > 60) {
       // Swipe right: Skip
       logHabit(habit.id, 'skipped');
