@@ -1,68 +1,19 @@
+import { useState } from 'react';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { useApp } from '@/context/AppContext';
-import { Flame, Target, TrendingUp, CheckCircle, XCircle, SkipForward } from 'lucide-react';
+import { useAnalytics } from '@/hooks/useAnalytics';
+import { Flame, Target, TrendingUp, CheckCircle, XCircle, SkipForward, BarChart3 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { HabitCompletionChart } from '@/components/analytics/HabitCompletionChart';
+import { StreakChart } from '@/components/analytics/StreakChart';
+import { GoalProgressChart } from '@/components/analytics/GoalProgressChart';
+import { WeeklyOverviewChart } from '@/components/analytics/WeeklyOverviewChart';
+import { TaskCompletionChart } from '@/components/analytics/TaskCompletionChart';
+import { Progress } from '@/components/ui/progress';
 
 export default function AnalyticsPage() {
-  const { habits, habitLogs, goals, tasks, getTodayString } = useApp();
-
-  // Calculate habit analytics
-  const today = new Date();
-  const last7Days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    return d.toISOString().split('T')[0];
-  });
-  const last30Days = Array.from({ length: 30 }, (_, i) => {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    return d.toISOString().split('T')[0];
-  });
-
-  const habitStats = habits.map(habit => {
-    const logs7Days = habitLogs.filter(l => l.habitId === habit.id && last7Days.includes(l.date));
-    const logs30Days = habitLogs.filter(l => l.habitId === habit.id && last30Days.includes(l.date));
-    
-    const done7 = logs7Days.filter(l => l.state === 'done').length;
-    const done30 = logs30Days.filter(l => l.state === 'done').length;
-    const missed7 = logs7Days.filter(l => l.state === 'missed').length;
-    const missed30 = logs30Days.filter(l => l.state === 'missed').length;
-    const skipped7 = logs7Days.filter(l => l.state === 'skipped').length;
-    const skipped30 = logs30Days.filter(l => l.state === 'skipped').length;
-
-    const completion7 = logs7Days.length > 0 ? Math.round((done7 / Math.min(7, logs7Days.length + (7 - last7Days.length))) * 100) : 0;
-    const completion30 = logs30Days.length > 0 ? Math.round((done30 / Math.min(30, logs30Days.length + (30 - last30Days.length))) * 100) : 0;
-
-    return {
-      habit,
-      completion7Days: Math.min(100, Math.round((done7 / 7) * 100)),
-      completion30Days: Math.min(100, Math.round((done30 / 30) * 100)),
-      missed: missed30,
-      skipped: skipped30,
-      consistencyScore: Math.round(((done30 + skipped30) / 30) * 100),
-    };
-  });
-
-  // Overall stats
-  const totalDone7Days = habitLogs.filter(l => last7Days.includes(l.date) && l.state === 'done').length;
-  const totalMissed7Days = habitLogs.filter(l => last7Days.includes(l.date) && l.state === 'missed').length;
-  const totalSkipped7Days = habitLogs.filter(l => last7Days.includes(l.date) && l.state === 'skipped').length;
-
-  const bestStreak = Math.max(...habits.map(h => h.bestStreak), 0);
-  const totalCurrentStreak = habits.reduce((sum, h) => sum + h.currentStreak, 0);
-
-  // Goal stats
-  const activeGoals = goals.filter(g => !g.completed);
-  const completedGoals = goals.filter(g => g.completed);
-  const avgProgress = activeGoals.length > 0 
-    ? Math.round(activeGoals.reduce((sum, g) => sum + g.currentProgress, 0) / activeGoals.length)
-    : 0;
-
-  // Task stats
-  const todayStr = getTodayString();
-  const completedTasksToday = tasks.filter(t => 
-    t.completed || t.completedDates.includes(todayStr)
-  ).length;
+  const { overallStats, habitStats } = useAnalytics();
+  const [activeTab, setActiveTab] = useState('overview');
 
   return (
     <PageContainer>
@@ -78,17 +29,17 @@ export default function AnalyticsPage() {
             <Flame className="w-4 h-4" />
             <span className="text-xs font-medium">Best Streak</span>
           </div>
-          <p className="stat-number text-accent">{bestStreak}</p>
+          <p className="stat-number text-warning">{overallStats.bestStreak}</p>
           <p className="text-xs text-muted-foreground">days</p>
         </div>
 
         <div className="card-elevated p-4 slide-up" style={{ animationDelay: '0.05s' }}>
           <div className="flex items-center gap-2 text-muted-foreground mb-2">
             <TrendingUp className="w-4 h-4" />
-            <span className="text-xs font-medium">Active Streaks</span>
+            <span className="text-xs font-medium">Completion Rate</span>
           </div>
-          <p className="stat-number text-primary">{totalCurrentStreak}</p>
-          <p className="text-xs text-muted-foreground">total days</p>
+          <p className="stat-number text-primary">{overallStats.completionRate7}%</p>
+          <p className="text-xs text-muted-foreground">last 7 days</p>
         </div>
 
         <div className="card-elevated p-4 slide-up" style={{ animationDelay: '0.1s' }}>
@@ -96,92 +47,145 @@ export default function AnalyticsPage() {
             <Target className="w-4 h-4" />
             <span className="text-xs font-medium">Goals Progress</span>
           </div>
-          <p className="stat-number text-primary">{avgProgress}%</p>
-          <p className="text-xs text-muted-foreground">{activeGoals.length} active</p>
+          <p className="stat-number text-primary">{overallStats.avgGoalProgress}%</p>
+          <p className="text-xs text-muted-foreground">{overallStats.activeGoals} active</p>
         </div>
 
         <div className="card-elevated p-4 slide-up" style={{ animationDelay: '0.15s' }}>
           <div className="flex items-center gap-2 text-muted-foreground mb-2">
             <CheckCircle className="w-4 h-4" />
-            <span className="text-xs font-medium">Tasks Done</span>
+            <span className="text-xs font-medium">Consistency</span>
           </div>
-          <p className="stat-number text-success">{completedTasksToday}</p>
-          <p className="text-xs text-muted-foreground">today</p>
+          <p className="stat-number text-success">{overallStats.consistencyScore}%</p>
+          <p className="text-xs text-muted-foreground">score</p>
         </div>
       </div>
 
-      {/* 7-Day Summary */}
-      <div className="card-elevated p-4 mb-4 slide-up" style={{ animationDelay: '0.2s' }}>
-        <h3 className="font-semibold mb-3">Last 7 Days</h3>
-        <div className="flex justify-between">
-          <div className="text-center">
-            <div className="w-10 h-10 rounded-full bg-success/20 text-success flex items-center justify-center mx-auto mb-1">
-              <CheckCircle className="w-5 h-5" />
-            </div>
-            <p className="text-lg font-bold">{totalDone7Days}</p>
-            <p className="text-xs text-muted-foreground">Done</p>
-          </div>
-          <div className="text-center">
-            <div className="w-10 h-10 rounded-full bg-skipped/20 text-skipped flex items-center justify-center mx-auto mb-1">
-              <SkipForward className="w-5 h-5" />
-            </div>
-            <p className="text-lg font-bold">{totalSkipped7Days}</p>
-            <p className="text-xs text-muted-foreground">Skipped</p>
-          </div>
-          <div className="text-center">
-            <div className="w-10 h-10 rounded-full bg-missed/20 text-missed flex items-center justify-center mx-auto mb-1">
-              <XCircle className="w-5 h-5" />
-            </div>
-            <p className="text-lg font-bold">{totalMissed7Days}</p>
-            <p className="text-xs text-muted-foreground">Missed</p>
-          </div>
-        </div>
-      </div>
+      {/* Tabs for different views */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="w-full grid grid-cols-3 h-10">
+          <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
+          <TabsTrigger value="habits" className="text-xs">Habits</TabsTrigger>
+          <TabsTrigger value="goals" className="text-xs">Goals</TabsTrigger>
+        </TabsList>
 
-      {/* Individual Habit Stats */}
-      {habitStats.length > 0 && (
-        <div className="slide-up" style={{ animationDelay: '0.25s' }}>
-          <h3 className="font-semibold mb-3">Habit Breakdown</h3>
-          <div className="space-y-3">
-            {habitStats.map(({ habit, completion7Days, completion30Days, consistencyScore }) => (
-              <div key={habit.id} className="card-elevated p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium text-sm">{habit.name}</h4>
-                  <span className="streak-badge text-xs">
-                    <Flame className="w-3 h-3" />
-                    {habit.currentStreak}
-                  </span>
+        <TabsContent value="overview" className="space-y-4 slide-up">
+          {/* 7-Day Summary */}
+          <div className="card-elevated p-4">
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-primary" />
+              Last 7 Days
+            </h3>
+            <div className="flex justify-between">
+              <div className="text-center flex-1">
+                <div className="w-10 h-10 rounded-full bg-success/20 text-success flex items-center justify-center mx-auto mb-1">
+                  <CheckCircle className="w-5 h-5" />
                 </div>
-                
-                <div className="space-y-2">
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-muted-foreground">7-day completion</span>
-                      <span className="font-medium">{completion7Days}%</span>
-                    </div>
-                    <div className="progress-bar">
-                      <div className="progress-bar-fill" style={{ width: `${completion7Days}%` }} />
-                    </div>
+                <p className="text-lg font-bold">{overallStats.done7}</p>
+                <p className="text-xs text-muted-foreground">Done</p>
+              </div>
+              <div className="text-center flex-1">
+                <div className="w-10 h-10 rounded-full bg-skipped/20 text-skipped flex items-center justify-center mx-auto mb-1">
+                  <SkipForward className="w-5 h-5" />
+                </div>
+                <p className="text-lg font-bold">{overallStats.skipped7}</p>
+                <p className="text-xs text-muted-foreground">Skipped</p>
+              </div>
+              <div className="text-center flex-1">
+                <div className="w-10 h-10 rounded-full bg-missed/20 text-missed flex items-center justify-center mx-auto mb-1">
+                  <XCircle className="w-5 h-5" />
+                </div>
+                <p className="text-lg font-bold">{overallStats.missed7}</p>
+                <p className="text-xs text-muted-foreground">Missed</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Weekly Chart */}
+          <WeeklyOverviewChart />
+          
+          {/* Task Completion */}
+          <TaskCompletionChart />
+        </TabsContent>
+
+        <TabsContent value="habits" className="space-y-4 slide-up">
+          {/* Habit Completion Trend */}
+          <HabitCompletionChart days={7} />
+          
+          {/* Streak Overview */}
+          <StreakChart />
+
+          {/* Individual Habit Stats */}
+          {habitStats.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="font-semibold flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-primary" />
+                Habit Breakdown
+              </h3>
+              {habitStats.map((stat) => (
+                <div key={stat.habitId} className="card-elevated p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium text-sm truncate max-w-[180px]">{stat.habitName}</h4>
+                    <span className="streak-badge text-xs">
+                      <Flame className="w-3 h-3" />
+                      {stat.currentStreak}
+                    </span>
                   </div>
                   
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-muted-foreground">30-day consistency</span>
-                      <span className="font-medium">{consistencyScore}%</span>
+                  <div className="space-y-2">
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-muted-foreground">7-day completion</span>
+                        <span className="font-medium">{stat.completion7Days}%</span>
+                      </div>
+                      <Progress value={stat.completion7Days} className="h-1.5" />
                     </div>
-                    <div className="progress-bar">
-                      <div className="progress-bar-fill" style={{ width: `${consistencyScore}%` }} />
+                    
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-muted-foreground">Consistency score</span>
+                        <span className="font-medium">{stat.consistencyScore}%</span>
+                      </div>
+                      <Progress value={stat.consistencyScore} className="h-1.5" />
+                    </div>
+
+                    {/* Mini week view */}
+                    <div className="flex gap-1 mt-2">
+                      {stat.dailyData.map((day, i) => (
+                        <div 
+                          key={i}
+                          className={`flex-1 h-5 rounded text-center text-[9px] leading-5 ${
+                            day.state === 'done' 
+                              ? 'bg-success/20 text-success' 
+                              : day.state === 'skipped'
+                                ? 'bg-skipped/20 text-skipped'
+                                : day.state === 'missed'
+                                  ? 'bg-missed/20 text-missed'
+                                  : 'bg-muted/50 text-muted-foreground'
+                          }`}
+                        >
+                          {['M', 'T', 'W', 'T', 'F', 'S', 'S'][i]}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+              ))}
+            </div>
+          )}
+        </TabsContent>
 
-      {habits.length === 0 && goals.length === 0 && (
-        <div className="text-center py-12 text-muted-foreground">
+        <TabsContent value="goals" className="space-y-4 slide-up">
+          {/* Goal Progress Chart */}
+          <GoalProgressChart />
+
+          {/* 30-day Trend */}
+          <HabitCompletionChart days={30} />
+        </TabsContent>
+      </Tabs>
+
+      {habitStats.length === 0 && overallStats.activeGoals === 0 && (
+        <div className="text-center py-12 text-muted-foreground slide-up">
           <TrendingUp className="w-12 h-12 mx-auto mb-3 opacity-50" />
           <p className="font-medium">No data yet</p>
           <p className="text-sm mt-1">Start tracking habits and goals to see analytics</p>

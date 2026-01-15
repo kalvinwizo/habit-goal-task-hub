@@ -24,17 +24,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Download, Upload, Moon, Sun, Clock, Bell, Tag, Palette, Smartphone, FileJson, FileSpreadsheet, Trash2, Star, ChevronRight } from 'lucide-react';
+import { Moon, Sun, Clock, Bell, Tag, Palette, FileJson, FileSpreadsheet, Trash2, Star, ChevronRight, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { CategoryManager } from '@/components/categories/CategoryManager';
-import { useNotifications } from '@/hooks/useNotifications';
+import { useWebPush } from '@/hooks/useWebPush';
 import { Link } from 'react-router-dom';
 
 const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export default function SettingsPage() {
   const { settings, setSettings, exportData, importData, clearAllData, customCategories, addCustomCategory, removeCustomCategory } = useApp();
-  const { isNative, requestPermissions, scheduleDailySummary } = useNotifications();
+  const { isSupported, permission, requestPermission, scheduleDailySummary } = useWebPush();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -69,19 +69,16 @@ export default function SettingsPage() {
   };
 
   const handleEnableNotifications = async () => {
-    const granted = await requestPermissions();
+    const granted = await requestPermission();
     if (granted) {
       updateSetting('notificationsEnabled', true);
-      toast.success('Notifications enabled!');
-    } else {
-      toast.error('Notification permission denied or not supported');
     }
   };
 
   const handleDailySummaryChange = async (checked: boolean) => {
     updateSetting('dailySummary', checked);
     if (checked && settings.notificationsEnabled) {
-      await scheduleDailySummary(settings.defaultReminderTime);
+      scheduleDailySummary(settings.defaultReminderTime);
       toast.success('Daily summary reminder scheduled!');
     }
   };
@@ -196,17 +193,28 @@ export default function SettingsPage() {
           </h3>
           
           <div className="space-y-4">
-          {isNative ? (
+            {/* Web Push Status */}
+            {isSupported ? (
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Push Notifications</Label>
-                  <p className="text-xs text-muted-foreground">Get reminders on your device</p>
+                  <p className="text-xs text-muted-foreground">
+                    {permission === 'granted' ? 'Enabled' : 'Get reminders in your browser'}
+                  </p>
                 </div>
-                {settings.notificationsEnabled ? (
-                  <Switch
-                    checked={settings.notificationsEnabled}
-                    onCheckedChange={(checked) => updateSetting('notificationsEnabled', checked)}
-                  />
+                {permission === 'granted' ? (
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-success" />
+                    <Switch
+                      checked={settings.notificationsEnabled}
+                      onCheckedChange={(checked) => updateSetting('notificationsEnabled', checked)}
+                    />
+                  </div>
+                ) : permission === 'denied' ? (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <AlertCircle className="w-4 h-4" />
+                    Blocked
+                  </div>
                 ) : (
                   <Button size="sm" variant="outline" onClick={handleEnableNotifications}>
                     Enable
@@ -215,9 +223,9 @@ export default function SettingsPage() {
               </div>
             ) : (
               <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
-                <Smartphone className="w-5 h-5 text-muted-foreground" />
+                <AlertCircle className="w-5 h-5 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground">
-                  Install this app on your device for push notifications
+                  Notifications not supported in this browser
                 </p>
               </div>
             )}
@@ -309,7 +317,7 @@ export default function SettingsPage() {
               className="w-full justify-start gap-2"
               onClick={() => fileInputRef.current?.click()}
             >
-              <Upload className="w-4 h-4" />
+              <FileJson className="w-4 h-4" />
               Import Data from Backup
             </Button>
             <input
@@ -348,7 +356,7 @@ export default function SettingsPage() {
             </AlertDialog>
 
             <p className="text-xs text-muted-foreground mt-2">
-              All data is stored locally on your device. Export regularly to create backups.
+              Your data syncs automatically to the cloud when online.
             </p>
           </div>
         </section>
@@ -356,7 +364,7 @@ export default function SettingsPage() {
         {/* App Info */}
         <section className="text-center py-6 text-muted-foreground text-sm slide-up" style={{ animationDelay: '0.35s' }}>
           <p className="font-medium">Habit & Goal Tracker</p>
-          <p className="text-xs mt-1">100% Free • Local-First • No Subscriptions</p>
+          <p className="text-xs mt-1">100% Free • Cloud Synced • No Subscriptions</p>
         </section>
       </div>
     </PageContainer>
