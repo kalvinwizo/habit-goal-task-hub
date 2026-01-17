@@ -1,75 +1,41 @@
-import { useMemo } from 'react';
+/**
+ * DashboardPage - Main dashboard view
+ * 
+ * Uses domain hooks for all business logic calculations.
+ * This component is presentation-focused.
+ */
+
 import { PageContainer } from '@/components/layout/PageContainer';
 import { useApp } from '@/context/AppContext';
 import { useAnalytics } from '@/hooks/useAnalytics';
-import { format, differenceInDays } from 'date-fns';
+import { useHabits } from '@/hooks/domain/useHabits';
+import { useTasks } from '@/hooks/domain/useTasks';
+import { useGoals } from '@/hooks/domain/useGoals';
+import { format } from 'date-fns';
 import { Target, Flame, CheckSquare, ListChecks, Settings, ChevronRight, Clock, TrendingUp } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
 import { Link } from 'react-router-dom';
 import { HabitCard } from '@/components/habits/HabitCard';
 import { TaskCard } from '@/components/tasks/TaskCard';
 
 export default function DashboardPage() {
-  const { goals, habits, tasks, habitLogs, getTodayString, logHabit, completeTask } = useApp();
+  const { goals, habits, tasks, getTodayString, archivedHabits } = useApp();
   const { overallStats } = useAnalytics();
+
+  // Use domain hooks for business logic
+  const { todayHabits: allTodayHabits } = useHabits({ habits, archivedHabits });
+  const { todayTasks: allTodayTasks } = useTasks({ tasks });
+  const { primaryGoal, calculateProgress, getTimeStatus } = useGoals({ goals, habits, tasks });
 
   const today = getTodayString();
   const todayDate = new Date();
 
-  // Get today's habits (not archived and scheduled for today)
-  const todayHabits = useMemo(() => {
-    const dayOfWeek = new Date().getDay();
-    const dayOfMonth = new Date().getDate();
-    
-    return habits.filter(h => {
-      if (h.archived) return false;
-      if (h.frequency === 'daily') return true;
-      if (h.frequency === 'specific' && h.specificDays?.includes(dayOfWeek)) return true;
-      if (h.frequency === 'monthly' && h.monthlyDates?.includes(dayOfMonth)) return true;
-      return false;
-    }).slice(0, 5); // Show max 5 habits
-  }, [habits]);
+  // Limit display to 5 items each
+  const todayHabits = allTodayHabits.slice(0, 5);
+  const todayTasks = allTodayTasks.slice(0, 5);
 
-  // Get today's tasks
-  const todayTasks = useMemo(() => {
-    return tasks.filter(t => {
-      if (t.type === 'daily') return true;
-      if (t.type === 'one-time' && !t.completed) return true;
-      if (t.type === 'monthly') {
-        const dayOfMonth = new Date().getDate();
-        return t.monthlyDates?.includes(dayOfMonth);
-      }
-      return false;
-    }).slice(0, 5); // Show max 5 tasks
-  }, [tasks]);
-
-  // Get primary goal (most urgent active goal)
-  const primaryGoal = useMemo(() => {
-    const activeGoals = goals.filter(g => !g.completed);
-    if (activeGoals.length === 0) return null;
-    return activeGoals.sort((a, b) => {
-      const daysA = differenceInDays(new Date(a.targetDate), new Date());
-      const daysB = differenceInDays(new Date(b.targetDate), new Date());
-      if (daysA !== daysB) return daysA - daysB;
-      return b.currentProgress - a.currentProgress;
-    })[0];
-  }, [goals]);
-
-  const getGoalProgress = (goal: typeof primaryGoal) => {
-    if (!goal) return 0;
-    if (goal.trackingType === 'checklist' && goal.milestones) {
-      const completed = goal.milestones.filter(m => m.completed).length;
-      return goal.milestones.length > 0 ? Math.round((completed / goal.milestones.length) * 100) : 0;
-    } else if (goal.trackingType === 'numeric' && goal.targetValue) {
-      return Math.min(100, Math.round((goal.currentProgress / goal.targetValue) * 100));
-    }
-    return goal.currentProgress;
-  };
-
-  const progress = getGoalProgress(primaryGoal);
-  const daysRemaining = primaryGoal 
-    ? differenceInDays(new Date(primaryGoal.targetDate), new Date()) 
-    : 0;
+  // Get progress and time status from domain hooks
+  const progress = primaryGoal ? calculateProgress(primaryGoal).percentage : 0;
+  const daysRemaining = primaryGoal ? getTimeStatus(primaryGoal).daysRemaining : 0;
 
   return (
     <PageContainer>

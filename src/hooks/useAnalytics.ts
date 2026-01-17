@@ -1,6 +1,20 @@
+/**
+ * useAnalytics - Domain hook for analytics and statistics calculations
+ * 
+ * Responsibilities:
+ * - Calculate daily, weekly, and monthly statistics
+ * - Generate chart-ready data structures
+ * - Compute habit and goal performance metrics
+ * - Provide streak and consistency calculations
+ * 
+ * This hook is UI-agnostic and contains NO JSX, DOM, or side effects.
+ */
+
 import { useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { format, subDays, differenceInDays, parseISO } from 'date-fns';
+import { useHabitLogs } from './domain/useHabitLogs';
+import { useGoals } from './domain/useGoals';
 
 export interface DailyStats {
   date: string;
@@ -36,7 +50,14 @@ export interface GoalStats {
 
 export function useAnalytics() {
   const { habits, habitLogs, goals, tasks, getTodayString } = useApp();
+  
+  // Use domain hooks for log queries
+  const habitLogsHook = useHabitLogs({ habitLogs });
+  const goalsHook = useGoals({ goals, habits, tasks });
 
+  /**
+   * Generate date ranges for different time periods
+   */
   const dateRanges = useMemo(() => {
     const today = new Date();
     return {
@@ -52,10 +73,12 @@ export function useAnalytics() {
     };
   }, []);
 
-  // Daily completion stats for charts
+  /**
+   * Daily completion stats for charts
+   */
   const dailyStats = useMemo((): DailyStats[] => {
     return dateRanges.last30Days.map(date => {
-      const logsForDate = habitLogs.filter(l => l.date === date);
+      const logsForDate = habitLogsHook.getLogsForDate(date);
       return {
         date,
         done: logsForDate.filter(l => l.state === 'done').length,
@@ -64,89 +87,77 @@ export function useAnalytics() {
         total: logsForDate.length,
       };
     });
-  }, [habitLogs, dateRanges.last30Days]);
+  }, [habitLogsHook, dateRanges.last30Days]);
 
-  // Individual habit statistics
+  /**
+   * Individual habit statistics
+   */
   const habitStats = useMemo((): HabitStats[] => {
     return habits.map(habit => {
-      const logs7 = habitLogs.filter(l => 
-        l.habitId === habit.id && dateRanges.last7Days.includes(l.date)
-      );
-      const logs30 = habitLogs.filter(l => 
-        l.habitId === habit.id && dateRanges.last30Days.includes(l.date)
-      );
-
-      const done7 = logs7.filter(l => l.state === 'done').length;
-      const done30 = logs30.filter(l => l.state === 'done').length;
-      const missed30 = logs30.filter(l => l.state === 'missed').length;
-      const skipped30 = logs30.filter(l => l.state === 'skipped').length;
+      const stats7 = habitLogsHook.getStatsForRange(habit.id, dateRanges.last7Days);
+      const stats30 = habitLogsHook.getStatsForRange(habit.id, dateRanges.last30Days);
 
       // Daily data for the last 7 days
       const dailyData = dateRanges.last7Days.map(date => {
-        const log = habitLogs.find(l => l.habitId === habit.id && l.date === date);
-        return { date, state: log?.state || null };
+        const state = habitLogsHook.getStateForDate(habit.id, date);
+        return { date, state: state === 'pending' ? null : state };
       });
+
+      // Consistency = done / (done + missed), skipped doesn't count against
+      const consistencyDenominator = stats30.done + stats30.missed;
+      const consistencyScore = consistencyDenominator > 0 
+        ? Math.round((stats30.done / consistencyDenominator) * 100) 
+        : 100;
 
       return {
         habitId: habit.id,
         habitName: habit.name,
         category: habit.category,
-        completion7Days: Math.min(100, Math.round((done7 / 7) * 100)),
-        completion30Days: Math.min(100, Math.round((done30 / 30) * 100)),
+        completion7Days: Math.min(100, Math.round((stats7.done / 7) * 100)),
+        completion30Days: Math.min(100, Math.round((stats30.done / 30) * 100)),
         currentStreak: habit.currentStreak,
         bestStreak: habit.bestStreak,
-        missedCount: missed30,
-        skippedCount: skipped30,
-        consistencyScore: (done30 + missed30) > 0 
-          ? Math.round((done30 / (done30 + missed30)) * 100) 
-          : 100,
+        missedCount: stats30.missed,
+        skippedCount: stats30.skipped,
+        consistencyScore,
         dailyData,
       };
     });
-  }, [habits, habitLogs, dateRanges]);
+  }, [habits, habitLogsHook, dateRanges]);
 
-  // Goal statistics
+  /**
+   * Goal statistics
+   */
   const goalStats = useMemo((): GoalStats[] => {
-    const today = new Date();
-    
     return goals.map(goal => {
-      const targetDate = parseISO(goal.targetDate);
-      const daysRemaining = differenceInDays(targetDate, today);
-      
-      // Calculate progress based on tracking type
-      let progress = goal.currentProgress;
-      if (goal.trackingType === 'checklist' && goal.milestones) {
-        const completed = goal.milestones.filter(m => m.completed).length;
-        progress = goal.milestones.length > 0 
-          ? Math.round((completed / goal.milestones.length) * 100) 
-          : 0;
-      } else if (goal.trackingType === 'numeric' && goal.targetValue) {
-        progress = Math.min(100, Math.round((goal.currentProgress / goal.targetValue) * 100));
-      }
+      const { percentage } = goalsHook.calculateProgress(goal);
+      const { daysRemaining, isOverdue } = goalsHook.getTimeStatus(goal);
 
-      // Generate progress history (simulated based on creation date)
+      // Generate progress history
       const createdDate = parseISO(goal.createdAt);
+      const today = new Date();
       const daysSinceCreation = Math.min(differenceInDays(today, createdDate), 30);
       const progressHistory = Array.from({ length: daysSinceCreation + 1 }, (_, i) => {
         const date = format(subDays(today, daysSinceCreation - i), 'yyyy-MM-dd');
-        // Linear interpolation for visualization
-        const value = Math.round((i / Math.max(daysSinceCreation, 1)) * progress);
+        const value = Math.round((i / Math.max(daysSinceCreation, 1)) * percentage);
         return { date, value };
       });
 
       return {
         goalId: goal.id,
         title: goal.title,
-        progress,
+        progress: percentage,
         daysRemaining,
-        isOverdue: daysRemaining < 0,
+        isOverdue,
         trackingType: goal.trackingType,
         progressHistory,
       };
     });
-  }, [goals]);
+  }, [goals, goalsHook]);
 
-  // Overall statistics
+  /**
+   * Overall aggregated statistics
+   */
   const overallStats = useMemo(() => {
     const today = getTodayString();
     
@@ -156,31 +167,36 @@ export function useAnalytics() {
     const totalCurrentStreak = habits.reduce((sum, h) => sum + h.currentStreak, 0);
     const bestStreak = Math.max(...habits.map(h => h.bestStreak), 0);
     
-    // 7-day performance
-    const logs7Days = habitLogs.filter(l => dateRanges.last7Days.includes(l.date));
-    const done7 = logs7Days.filter(l => l.state === 'done').length;
-    const missed7 = logs7Days.filter(l => l.state === 'missed').length;
-    const skipped7 = logs7Days.filter(l => l.state === 'skipped').length;
+    // 7-day performance using domain hook
+    let done7 = 0, missed7 = 0, skipped7 = 0;
+    habits.forEach(habit => {
+      const stats = habitLogsHook.getStatsForRange(habit.id, dateRanges.last7Days);
+      done7 += stats.done;
+      missed7 += stats.missed;
+      skipped7 += stats.skipped;
+    });
     const total7 = done7 + missed7 + skipped7;
     const completionRate7 = total7 > 0 ? Math.round((done7 / total7) * 100) : 0;
 
     // 30-day performance
-    const logs30Days = habitLogs.filter(l => dateRanges.last30Days.includes(l.date));
-    const done30 = logs30Days.filter(l => l.state === 'done').length;
-    const missed30 = logs30Days.filter(l => l.state === 'missed').length;
-    const total30 = logs30Days.length;
+    let done30 = 0, missed30 = 0;
+    habits.forEach(habit => {
+      const stats = habitLogsHook.getStatsForRange(habit.id, dateRanges.last30Days);
+      done30 += stats.done;
+      missed30 += stats.missed;
+    });
+    const total30 = done30 + missed30;
     const completionRate30 = total30 > 0 ? Math.round((done30 / total30) * 100) : 0;
 
-    // Consistency score (done vs done+missed, skipped doesn't affect)
+    // Consistency score
     const consistencyScore = (done7 + missed7) > 0 
       ? Math.round((done7 / (done7 + missed7)) * 100) 
       : 100;
 
-    // Goals
-    const activeGoals = goals.filter(g => !g.completed);
-    const completedGoals = goals.filter(g => g.completed);
-    const avgGoalProgress = activeGoals.length > 0
-      ? Math.round(activeGoals.reduce((sum, g) => sum + g.currentProgress, 0) / activeGoals.length)
+    // Goals - using domain hook
+    const avgGoalProgress = goalsHook.activeGoals.length > 0
+      ? Math.round(goalsHook.activeGoals.reduce((sum, g) => 
+          sum + goalsHook.calculateProgress(g).percentage, 0) / goalsHook.activeGoals.length)
       : 0;
 
     // Tasks
@@ -204,17 +220,18 @@ export function useAnalytics() {
       completionRate7,
       completionRate30,
       consistencyScore,
-      activeGoals: activeGoals.length,
-      completedGoals: completedGoals.length,
+      activeGoals: goalsHook.activeGoals.length,
+      completedGoals: goalsHook.completedGoals.length,
       avgGoalProgress,
       tasksToday: tasksToday.length,
       tasksCompletedToday,
     };
-  }, [habits, habitLogs, goals, tasks, dateRanges, getTodayString]);
+  }, [habits, tasks, dateRanges, getTodayString, habitLogsHook, goalsHook]);
 
-  // Streak history (for chart)
+  /**
+   * Streak history for charts
+   */
   const streakHistory = useMemo(() => {
-    // Create a timeline of max streaks per day (simplified view)
     return dateRanges.last30Days.map(date => {
       const totalActiveStreaks = habits.reduce((sum, h) => {
         const logsBeforeDate = habitLogs.filter(l => 
@@ -230,7 +247,9 @@ export function useAnalytics() {
     });
   }, [habits, habitLogs, dateRanges.last30Days]);
 
-  // Task completion trend
+  /**
+   * Task completion trend for charts
+   */
   const taskCompletionTrend = useMemo(() => {
     return dateRanges.last7Days.map(date => {
       const completed = tasks.filter(t => t.completedDates.includes(date)).length;
