@@ -1,7 +1,16 @@
+/**
+ * HabitCard - Presentation component for displaying a single habit
+ * 
+ * This component is primarily presentation-focused and delegates
+ * business logic to domain hooks and the data layer.
+ */
+
 import { useState, useRef } from 'react';
 import { Check, X, SkipForward, Flame, MoreVertical, Archive, Edit, Hash, Timer, ListChecks, Eye } from 'lucide-react';
 import { Habit, HabitState } from '@/types';
 import { useApp } from '@/context/AppContext';
+import { useHabits } from '@/hooks/domain/useHabits';
+import { useHabitLogs } from '@/hooks/domain/useHabitLogs';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,11 +25,16 @@ interface HabitCardProps {
 }
 
 export function HabitCard({ habit, onEdit }: HabitCardProps) {
-  const { logHabit, getHabitLogForDate, getTodayString, archiveHabit, settings } = useApp();
-  const today = getTodayString();
-  const todayLog = getHabitLogForDate(habit.id, today);
-  const currentState = todayLog?.state || 'pending';
+  const { logHabit, getHabitLogForDate, getTodayString, archiveHabit, settings, habitLogs, habits, archivedHabits } = useApp();
   
+  // Use domain hooks for business logic
+  const { getFrequencyLabel, getDifficultyClass } = useHabits({ habits, archivedHabits });
+  const { getStateForDate, getStateColorClass } = useHabitLogs({ habitLogs });
+  
+  const today = getTodayString();
+  const currentState = getStateForDate(habit.id, today);
+  
+  // Local UI state only
   const [tapCount, setTapCount] = useState(0);
   const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -118,27 +132,10 @@ export function HabitCard({ habit, onEdit }: HabitCardProps) {
     logHabit(habit.id, state);
   };
 
-  const difficultyClass = {
-    easy: 'difficulty-easy',
-    medium: 'difficulty-medium',
-    hard: 'difficulty-hard',
-  }[habit.difficulty];
-
-  const frequencyLabel = {
-    daily: 'Daily',
-    weekly: 'Weekly',
-    specific: habit.specificDays?.map(d => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]).join(', ') || 'Specific days',
-    monthly: habit.monthlyDates?.map(d => d.toString()).join(', ') || 'Monthly',
-  }[habit.frequency];
-
-  const getStateColor = () => {
-    switch (currentState) {
-      case 'done': return 'ring-2 ring-success bg-success/10';
-      case 'missed': return 'ring-2 ring-destructive bg-destructive/10';
-      case 'skipped': return 'ring-2 ring-muted-foreground bg-muted/50';
-      default: return '';
-    }
-  };
+  // Use domain hooks for display values
+  const difficultyClass = getDifficultyClass(habit.difficulty);
+  const frequencyLabel = getFrequencyLabel(habit);
+  const stateColorClass = getStateColorClass(currentState);
 
   const getEvaluationIcon = () => {
     switch (habit.evaluationType) {
@@ -152,7 +149,7 @@ export function HabitCard({ habit, onEdit }: HabitCardProps) {
   return (
     <>
       <div 
-        className={`card-elevated p-4 fade-in relative overflow-hidden transition-all duration-200 ${getStateColor()}`}
+        className={`card-elevated p-4 fade-in relative overflow-hidden transition-all duration-200 ${stateColorClass}`}
         style={{ 
           transform: `translateX(${swipeOffset}px)`,
           opacity: 1 - Math.abs(swipeOffset) / 200

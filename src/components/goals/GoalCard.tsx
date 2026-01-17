@@ -1,14 +1,21 @@
+/**
+ * GoalCard - Presentation component for displaying a single goal
+ * 
+ * This component is primarily presentation-focused and delegates
+ * business logic to domain hooks and the data layer.
+ */
+
 import { useState, useRef } from 'react';
 import { Target, Calendar, MoreVertical, Edit, Trash2, Check, Clock, Eye } from 'lucide-react';
 import { Goal } from '@/types';
 import { useApp } from '@/context/AppContext';
+import { useGoals } from '@/hooks/domain/useGoals';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { format, differenceInDays, differenceInMilliseconds } from 'date-fns';
 import { GoalDetailDialog } from './GoalDetailDialog';
 
 interface GoalCardProps {
@@ -17,30 +24,22 @@ interface GoalCardProps {
 }
 
 export function GoalCard({ goal, onEdit }: GoalCardProps) {
-  const { deleteGoal, updateGoal, habits, tasks } = useApp();
+  const { deleteGoal, updateGoal, habits, tasks, goals } = useApp();
+  
+  // Use domain hooks for business logic
+  const { calculateProgress, getTimeStatus, getLinkedHabits, getLinkedTasks, isBehindSchedule } = useGoals({ goals, habits, tasks });
+  
+  // Local UI state
   const [showDetail, setShowDetail] = useState(false);
   const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isLongPress, setIsLongPress] = useState(false);
   
-  const daysRemaining = differenceInDays(new Date(goal.targetDate), new Date());
-  const isOverdue = daysRemaining < 0;
-  
-  // Calculate time progress (how much time has passed)
-  const totalDuration = differenceInMilliseconds(new Date(goal.targetDate), new Date(goal.createdAt));
-  const elapsed = differenceInMilliseconds(new Date(), new Date(goal.createdAt));
-  const timeProgress = Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
-  
-  // Calculate progress based on tracking type
-  let progress = goal.currentProgress;
-  if (goal.trackingType === 'checklist' && goal.milestones) {
-    const completed = goal.milestones.filter(m => m.completed).length;
-    progress = goal.milestones.length > 0 ? Math.round((completed / goal.milestones.length) * 100) : 0;
-  } else if (goal.trackingType === 'numeric' && goal.targetValue) {
-    progress = Math.min(100, Math.round((goal.currentProgress / goal.targetValue) * 100));
-  }
-
-  const linkedHabits = habits.filter(h => goal.linkedHabitIds.includes(h.id));
-  const linkedTasks = tasks.filter(t => goal.linkedTaskIds.includes(t.id));
+  // Get computed values from domain hooks
+  const { percentage: progress } = calculateProgress(goal);
+  const { daysRemaining, isOverdue, timeProgress } = getTimeStatus(goal);
+  const linkedHabits = getLinkedHabits(goal);
+  const linkedTasks = getLinkedTasks(goal);
+  const behindSchedule = isBehindSchedule(goal);
 
   // Long-press handlers
   const handleTouchStart = () => {
@@ -148,14 +147,14 @@ export function GoalCard({ goal, onEdit }: GoalCardProps) {
                   <div className="h-1.5 bg-muted/50 rounded-full overflow-hidden">
                     <div 
                       className={`h-full rounded-full transition-all duration-500 ${
-                        timeProgress > progress 
+                        behindSchedule 
                           ? 'bg-warning' 
                           : 'bg-success/60'
                       }`}
                       style={{ width: `${timeProgress}%` }}
                     />
                   </div>
-                  {timeProgress > progress && (
+                  {behindSchedule && (
                     <p className="text-[10px] text-warning">
                       Behind schedule - {Math.round(timeProgress - progress)}% more time used than progress made
                     </p>
