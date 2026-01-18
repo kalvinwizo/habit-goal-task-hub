@@ -1,14 +1,16 @@
-import { useMemo } from 'react';
-import { Flame, TrendingUp, Calendar, Check, X, SkipForward, Target, Clock, Hash, Timer, ListChecks } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Flame, TrendingUp, Calendar, Check, X, SkipForward, Target } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useApp } from '@/context/AppContext';
 import { Habit } from '@/types';
 import { format, subDays, parseISO } from 'date-fns';
+import { HabitHeatmap } from '@/components/heatmap/HabitHeatmap';
 
 interface HabitDetailDialogProps {
   habit: Habit;
@@ -167,32 +169,20 @@ export function HabitDetailDialog({ habit, open, onClose }: HabitDetailDialogPro
             </div>
           </div>
 
-          {/* 30-Day Heatmap */}
+          {/* Heatmap Visualization */}
           <div className="glass-card p-4">
-            <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-primary" />
-              Last 30 Days
-            </h4>
-            <div className="grid grid-cols-10 gap-1">
-              {stats.monthlyHeatmap.map(day => (
-                <div 
-                  key={day.date}
-                  className={`w-full aspect-square rounded-sm ${getStateColor(day.state)}`}
-                  title={`${day.date}: ${day.state}`}
-                />
-              ))}
-            </div>
-            <div className="flex items-center justify-end gap-3 mt-3 text-[10px] text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-sm bg-success" /> Done
-              </span>
-              <span className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-sm bg-muted-foreground/50" /> Skip
-              </span>
-              <span className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-sm bg-destructive" /> Miss
-              </span>
-            </div>
+            <Tabs defaultValue="month" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-3">
+                <TabsTrigger value="month" className="text-xs">Monthly</TabsTrigger>
+                <TabsTrigger value="year" className="text-xs">Yearly</TabsTrigger>
+              </TabsList>
+              <TabsContent value="month">
+                <HabitHeatmap habit={habit} view="month" />
+              </TabsContent>
+              <TabsContent value="year">
+                <HabitHeatmap habit={habit} view="year" />
+              </TabsContent>
+            </Tabs>
           </div>
 
           {/* Completion Rates */}
