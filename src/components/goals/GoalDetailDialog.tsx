@@ -9,9 +9,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useApp } from '@/context/AppContext';
 import { Goal } from '@/types';
 import { format, differenceInDays, differenceInMilliseconds } from 'date-fns';
+import { GoalHeatmap } from '@/components/heatmap/GoalHeatmap';
 
 interface GoalDetailDialogProps {
   goal: Goal;
@@ -194,6 +196,22 @@ export function GoalDetailDialog({ goal, open, onClose }: GoalDetailDialogProps)
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Progress Heatmap */}
+          <div className="glass-card p-4">
+            <Tabs defaultValue="weekly" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-3">
+                <TabsTrigger value="weekly" className="text-xs">Weekly</TabsTrigger>
+                <TabsTrigger value="monthly" className="text-xs">Monthly</TabsTrigger>
+              </TabsList>
+              <TabsContent value="weekly">
+                <GoalHeatmap goal={goal} view="weekly" />
+              </TabsContent>
+              <TabsContent value="monthly">
+                <GoalHeatmap goal={goal} view="monthly" />
+              </TabsContent>
+            </Tabs>
           </div>
 
           {/* Stats Grid */}
