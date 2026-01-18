@@ -6,11 +6,11 @@ export default function PremiumPage() {
   const features = [
     { icon: Repeat, title: 'Unlimited Habits', description: 'Track as many habits as you want with no limits' },
     { icon: Target, title: 'SMART Goals', description: 'Create goals with percentage, numeric, or checklist tracking' },
-    { icon: BarChart3, title: 'Detailed Analytics', description: 'View completion rates, streaks, and consistency scores' },
+    { icon: BarChart3, title: 'Detailed Analytics', description: 'View completion rates, streaks, heatmaps, and consistency' },
     { icon: Bell, title: 'Custom Reminders', description: 'Set multiple reminders for each habit, task, and goal' },
-    { icon: Download, title: 'Data Export', description: 'Export your data as JSON backup anytime' },
-    { icon: Upload, title: 'Data Import', description: 'Restore from backups or migrate your data' },
-    { icon: Shield, title: 'Local-First Privacy', description: 'All data stays on your device - no cloud required' },
+    { icon: Download, title: 'Data Export', description: 'Export your data as JSON or CSV backup anytime' },
+    { icon: Upload, title: 'Cloud Sync', description: 'Automatic cloud backup with optional manual export' },
+    { icon: Shield, title: 'Privacy-First', description: 'Your data is encrypted and secured in the cloud' },
     { icon: Sparkles, title: 'Beautiful UI', description: 'Modern Apple-inspired liquid glass design' },
   ];
 
@@ -22,11 +22,13 @@ export default function PremiumPage() {
     { status: 'done', title: 'Custom categories' },
     { status: 'done', title: 'Data backup & restore' },
     { status: 'done', title: 'Multiple reminders' },
-    { status: 'planned', title: 'Calendar heatmap visualization' },
-    { status: 'planned', title: 'Widget support' },
-    { status: 'planned', title: 'Cloud sync (optional)' },
+    { status: 'done', title: 'Calendar heatmap visualization' },
+    { status: 'done', title: 'Cloud sync' },
+    { status: 'done', title: 'Modular architecture' },
+    { status: 'planned', title: 'Widget support (Android/iOS)' },
     { status: 'planned', title: 'Habit templates' },
     { status: 'planned', title: 'Goal sharing' },
+    { status: 'planned', title: 'Social accountability' },
   ];
 
   return (

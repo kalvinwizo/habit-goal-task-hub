@@ -1,0 +1,19 @@
+{
+  "name": "Habitix - Habit, Goal & Task Tracker",
+  "short_name": "Habitix",
+  "description": "Free habit, goal, and task tracker with SMART goals, streak tracking, and detailed analytics",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#0ea5e9",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["productivity", "lifestyle"],
+  "lang": "en"
+}

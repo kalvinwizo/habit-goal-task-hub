@@ -3,19 +3,62 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Habit & Goal Tracker - Free Local-First Productivity App</title>
-    <meta name="description" content="Free local-first habit, goal, and task tracker. Track daily habits, set SMART goals, manage tasks, and view analytics - all stored locally on your device." />
-    <meta name="author" content="Lovable" />
-    <meta name="theme-color" content="#22a589" />
+    <title>Habitix - Free Habit, Goal & Task Tracker</title>
+    <meta name="description" content="Build better habits with Habitix - a free, privacy-first habit tracker. Set SMART goals, manage tasks, track streaks, and view analytics. 100% free, no ads, no subscriptions." />
+    <meta name="author" content="Habitix" />
+    <meta name="theme-color" content="#0ea5e9" />
+    <meta name="keywords" content="habit tracker, goal tracker, task manager, streak counter, productivity app, free habit app, SMART goals, daily habits" />
+    
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Habitix" />
 
-    <meta property="og:title" content="Habit & Goal Tracker" />
-    <meta property="og:description" content="Free local-first habit, goal, and task tracker. Track habits, set SMART goals, manage tasks - all stored locally." />
+    <!-- Open Graph -->
+    <meta property="og:title" content="Habitix - Free Habit, Goal & Task Tracker" />
+    <meta property="og:description" content="Build better habits with Habitix. Free, privacy-first habit tracking with SMART goals, task management, and detailed analytics." />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta property="og:url" content="https://habitix.lovable.app" />
+    <meta property="og:image" content="https://habitix.lovable.app/og-image.png" />
+    <meta property="og:site_name" content="Habitix" />
 
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@Lovable" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta name="twitter:title" content="Habitix - Free Habit Tracker" />
+    <meta name="twitter:description" content="Build better habits with Habitix. 100% free, no ads, no subscriptions." />
+    <meta name="twitter:image" content="https://habitix.lovable.app/og-image.png" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico" />
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Habitix",
+      "description": "Free habit, goal, and task tracker with SMART goals, streak tracking, and detailed analytics",
+      "url": "https://habitix.lovable.app",
+      "applicationCategory": "ProductivityApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Habit tracking with streaks",
+        "SMART goal setting",
+        "Task management",
+        "Detailed analytics",
+        "Cloud sync",
+        "Data export"
+      ]
+    }
+    </script>
   </head>
 
   <body>
