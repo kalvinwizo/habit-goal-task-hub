@@ -4,19 +4,23 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { HabitCard } from '@/components/habits/HabitCard';
 import { CreateHabitDialog } from '@/components/habits/CreateHabitDialog';
 import { HabitFiltersComponent, HabitFilters } from '@/components/habits/HabitFilters';
+import { UpgradePrompt } from '@/components/premium/UpgradePrompt';
 import { useApp } from '@/context/AppContext';
+import { usePremium, FREE_LIMITS } from '@/hooks/usePremium';
 import { Habit } from '@/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Archive, Repeat } from 'lucide-react';
 
 export default function HabitsPage() {
-  const { habits, archivedHabits, updateHabit, customCategories } = useApp();
+  const { habits, archivedHabits, goals, updateHabit, customCategories } = useApp();
+  const { canAddHabit, habitCount, habitsRemaining } = usePremium({ habits, goals });
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [filters, setFilters] = useState<HabitFilters>({
     categories: [],
     difficulties: [],
     frequencies: [],
   });
+  const [showUpgrade, setShowUpgrade] = useState(true);
 
   const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
   const todayDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -53,7 +57,7 @@ export default function HabitsPage() {
     <PageContainer>
       <PageHeader 
         title="Habits" 
-        subtitle={`${todayName}, ${todayDate}`}
+        subtitle={`${todayName}, ${todayDate} • ${habitsRemaining === Infinity ? '∞' : habitsRemaining} remaining`}
         action={
           <div className="flex items-center gap-2">
             <HabitFiltersComponent 
@@ -61,10 +65,19 @@ export default function HabitsPage() {
               onFiltersChange={setFilters}
               customCategories={customCategories.map(c => c.name)}
             />
-            <CreateHabitDialog />
+            <CreateHabitDialog disabled={!canAddHabit} />
           </div>
         }
       />
+
+      {/* Upgrade Prompt */}
+      {showUpgrade && !canAddHabit && (
+        <UpgradePrompt 
+          type="habit" 
+          current={habitCount} 
+          onDismiss={() => setShowUpgrade(false)} 
+        />
+      )}
 
       <Tabs defaultValue="today" className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-4">

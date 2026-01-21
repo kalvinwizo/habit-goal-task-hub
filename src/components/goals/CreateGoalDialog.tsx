@@ -26,9 +26,10 @@ import { ReminderInput } from '@/components/reminders/ReminderInput';
 interface CreateGoalDialogProps {
   editGoal?: Goal | null;
   onClose?: () => void;
+  disabled?: boolean;
 }
 
-export function CreateGoalDialog({ editGoal, onClose }: CreateGoalDialogProps) {
+export function CreateGoalDialog({ editGoal, onClose, disabled }: CreateGoalDialogProps) {
   const { addGoal, updateGoal, customCategories } = useApp();
   const [open, setOpen] = useState(!!editGoal);
   const [title, setTitle] = useState(editGoal?.title || '');
@@ -109,7 +110,7 @@ export function CreateGoalDialog({ editGoal, onClose }: CreateGoalDialogProps) {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       {!editGoal && (
         <DialogTrigger asChild>
-          <Button size="icon" className="rounded-full shadow-elevated">
+          <Button size="icon" className="rounded-full shadow-elevated" disabled={disabled}>
             <Plus className="w-5 h-5" />
           </Button>
         </DialogTrigger>
