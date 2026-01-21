@@ -28,9 +28,10 @@ const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 interface CreateHabitDialogProps {
   editHabit?: Habit | null;
   onClose?: () => void;
+  disabled?: boolean;
 }
 
-export function CreateHabitDialog({ editHabit, onClose }: CreateHabitDialogProps) {
+export function CreateHabitDialog({ editHabit, onClose, disabled }: CreateHabitDialogProps) {
   const { addHabit, updateHabit, customCategories, goals } = useApp();
   const [open, setOpen] = useState(!!editHabit);
   const [name, setName] = useState(editHabit?.name || '');
@@ -141,7 +142,7 @@ export function CreateHabitDialog({ editHabit, onClose }: CreateHabitDialogProps
     <Dialog open={open} onOpenChange={handleOpenChange}>
       {!editHabit && (
         <DialogTrigger asChild>
-          <Button size="icon" className="rounded-full shadow-elevated">
+          <Button size="icon" className="rounded-full shadow-elevated" disabled={disabled}>
             <Plus className="w-5 h-5" />
           </Button>
         </DialogTrigger>
